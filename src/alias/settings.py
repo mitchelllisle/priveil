@@ -14,3 +14,5 @@ class Settings(BaseSettings):
     )
 
     debug: bool = False
+    spacy_model: str = "en_core_web_lg"
+    executor_max_workers: int = 4
