@@ -11,6 +11,8 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.0,<3.0",
     "pydantic-settings>=2.0,<3.0",
+    "presidio-analyzer>=2.2.0",
+    "spacy>=3.7.0",
 ]
 
 [build-system]
@@ -21,6 +23,12 @@ build-backend = "hatchling.build"
 packages = ["src/alias"]
 
 [dependency-groups]
+# Models are in a separate group so they are included in both dev (uv sync)
+# and production (uv sync --no-dev) builds. Only the dev toolchain is excluded
+# from the runtime image.
+models = [
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+]
 dev = [
     "ruff>=0.9.0",
     "mypy>=2.0,<3.0",
@@ -32,13 +40,17 @@ dev = [
 
 [tool.ruff]
 line-length = 120
+target-version = "py311"
 exclude = [".git", ".venv", "dist", "build", "__pycache__"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 
 [tool.mypy]
-python_version = "3.11"
+# mypy runs at 3.12 so numpy 2.x bundled stubs (which use the `type` statement)
+# parse cleanly. 3.11 syntax compatibility is enforced by ruff's target-version
+# and verified at runtime by the CI Docker matrix (3.11 / 3.12 / 3.13).
+python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 

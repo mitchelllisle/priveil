@@ -1,16 +1,23 @@
 from collections.abc import AsyncIterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from alias.api.routes import health
+from alias.api.routes import detect, health
+from alias.engine.analyser import AsyncAnalyser, build_analyser_engine
 from alias.settings import Settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Startup / shutdown hook — engines are wired here as slices land."""
+    """Startup / shutdown hook — initialise engines, yield, then clean up."""
+    settings: Settings = app.state.settings
+    executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
+    engine = build_analyser_engine(spacy_model=settings.spacy_model)
+    app.state.analyser = AsyncAnalyser(engine, executor)
     yield
+    executor.shutdown(wait=True)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -33,6 +40,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.include_router(health.router)
+    app.include_router(detect.router, prefix="/detect", tags=["detection"])
 
     return app
 
