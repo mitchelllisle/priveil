@@ -7,7 +7,10 @@ from alias.settings import Settings
 
 @pytest.fixture
 def test_settings() -> Settings:
-    return Settings()
+    # Construct with explicit values and disable .env loading so the test
+    # suite is hermetic — local .env files or environment variables cannot
+    # leak in and change behaviour.
+    return Settings(_env_file=None)
 
 
 @pytest.fixture
