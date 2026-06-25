@@ -1,29 +1,28 @@
 ARG PYTHON_VERSION=3.12
 ARG SPACY_MODEL=en_core_web_sm
 
-# ── base: shared dependency install ───────────────────────────────────────────
+# ── base: shared production dependency install ────────────────────────────────
 FROM python:${PYTHON_VERSION}-slim AS base
-ARG SPACY_MODEL  # re-declared so it is in scope within this stage
 
 COPY --from=ghcr.io/astral-sh/uv:0.11.24 /uv /usr/local/bin/uv
 
-# Install directly into the system Python — no venv needed in containers
 ENV UV_SYSTEM_PYTHON=1
 
 WORKDIR /app
 
-# Dependencies first for layer caching — source changes don't bust this layer
+# Deps before source for layer caching
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-cache
 
 COPY src/ ./src/
 RUN uv pip install --no-deps . --no-cache-dir
 
-# Download the spaCy model — separate layer so dep changes don't re-download
-RUN uv run python -m spacy download ${SPACY_MODEL}
-
 # ── runtime ───────────────────────────────────────────────────────────────────
 FROM base AS runtime
+
+# spaCy model downloaded last — after all uv sync calls so it isn't pruned
+ARG SPACY_MODEL
+RUN uv run python -m spacy download ${SPACY_MODEL}
 
 EXPOSE 8000
 
@@ -32,9 +31,13 @@ CMD ["uv", "run", "uvicorn", "alias.app:app", "--host", "0.0.0.0", "--port", "80
 # ── test ──────────────────────────────────────────────────────────────────────
 FROM base AS test
 
-# Add dev deps (pytest, httpx, etc.)
+# Dev deps (pytest, httpx, etc.) — must come before model download
 RUN uv sync --frozen --no-cache
 
 COPY tests/ ./tests/
+
+# spaCy model downloaded last — after uv sync so it isn't pruned from the venv
+ARG SPACY_MODEL
+RUN uv run python -m spacy download ${SPACY_MODEL}
 
 CMD ["uv", "run", "pytest", "tests/", "-v"]
