@@ -11,7 +11,8 @@ WORKDIR /app
 
 # Dependencies before source for layer caching
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-cache
+# uv only includes the dev group by default; models must be explicit.
+RUN uv sync --frozen --no-dev --group models --no-cache
 
 COPY src/ ./src/
 RUN uv pip install --no-deps . --no-cache-dir
@@ -29,9 +30,8 @@ CMD ["uv", "run", "uvicorn", "alias.app:app", "--host", "0.0.0.0", "--port", "80
 # ── test ──────────────────────────────────────────────────────────────────────
 FROM base AS test
 
-# Dev deps include en-core-web-sm (pinned in pyproject.toml dependency-groups.dev)
-# so the model is always installed by uv sync — no fragile download step needed.
-RUN uv sync --frozen --no-cache
+# --all-groups includes dev + models (en-core-web-sm) in one step.
+RUN uv sync --frozen --all-groups --no-cache
 
 COPY tests/ ./tests/
 
