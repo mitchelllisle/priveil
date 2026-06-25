@@ -22,7 +22,7 @@ FROM base AS runtime
 
 EXPOSE 8000
 
-CMD ["uvicorn", "alias.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "alias.app:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ── test ──────────────────────────────────────────────────────────────────────
 FROM base AS test
@@ -32,4 +32,4 @@ RUN uv sync --frozen --no-cache
 
 COPY tests/ ./tests/
 
-CMD ["pytest", "tests/", "-v"]
+CMD ["uv", "run", "pytest", "tests/", "-v"]
