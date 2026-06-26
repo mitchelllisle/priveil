@@ -81,3 +81,50 @@ def test_hallucinated_entity_type_silently_dropped() -> None:
     )
     result = _apply_decision(decision, req)
     assert result.added == []
+
+
+def test_negative_fp_index_rejected() -> None:
+    """Python's -1 index would silently remove the last entity — must be blocked."""
+    entity = _entity(EntityType.PERSON, "Alice")
+    req = _req(entity, text="Alice here")
+    decision = RefinerDecision(reasoning="bad index", false_positive_indices=[-1])
+    result = _apply_decision(decision, req)
+    assert result.removed == []
+    assert len(result.adjusted.entities) == 1
+
+
+def test_fn_out_of_bounds_start_dropped() -> None:
+    req = _req(text="hello")
+    decision = RefinerDecision(
+        reasoning="bad offsets",
+        false_negatives=[_NewEntity(text="hello", entity_type="PERSON", start=-1, end=5)],
+    )
+    assert _apply_decision(decision, req).added == []
+
+
+def test_fn_out_of_bounds_end_dropped() -> None:
+    req = _req(text="hello")
+    decision = RefinerDecision(
+        reasoning="bad offsets",
+        false_negatives=[_NewEntity(text="hello", entity_type="PERSON", start=0, end=99)],
+    )
+    assert _apply_decision(decision, req).added == []
+
+
+def test_fn_span_mismatch_dropped() -> None:
+    """text[start:end] must equal new_e.text exactly — wrong text rejected."""
+    req = _req(text="hello world")
+    decision = RefinerDecision(
+        reasoning="wrong span",
+        false_negatives=[_NewEntity(text="world!", entity_type="PERSON", start=6, end=11)],
+    )
+    assert _apply_decision(decision, req).added == []
+
+
+def test_fn_start_ge_end_dropped() -> None:
+    req = _req(text="hello")
+    decision = RefinerDecision(
+        reasoning="bad offsets",
+        false_negatives=[_NewEntity(text="", entity_type="PERSON", start=3, end=3)],
+    )
+    assert _apply_decision(decision, req).added == []

@@ -66,15 +66,31 @@ Detected entities (zero-based index):
 
 
 def _apply_decision(decision: RefinerDecision, request: JudgementRequest) -> JudgementResult:
-    """Apply a RefinerDecision to produce a JudgementResult. Pure function."""
-    all_entities = list(request.detections.entities)
-    fp_indices = set(decision.false_positive_indices)
+    """Apply a RefinerDecision to produce a JudgementResult. Pure function.
 
-    removed = [all_entities[i] for i in sorted(fp_indices) if i < len(all_entities)]
+    Guards applied:
+    - FP indices must be in [0, len(entities)) — negative indices are rejected.
+    - FN spans must be in-bounds and the text slice must match new_e.text exactly.
+    """
+    text = request.text
+    all_entities = list(request.detections.entities)
+    n = len(all_entities)
+    # Guard: reject negative indices and out-of-range indices.
+    fp_indices = {i for i in decision.false_positive_indices if 0 <= i < n}
+
+    removed = [all_entities[i] for i in sorted(fp_indices)]
     kept = [e for i, e in enumerate(all_entities) if i not in fp_indices]
 
     added: list[Entity] = []
     for new_e in decision.false_negatives:
+        # Guard: reject invalid offsets and mismatched spans.
+        if (
+            new_e.start < 0
+            or new_e.end > len(text)
+            or new_e.start >= new_e.end
+            or text[new_e.start : new_e.end] != new_e.text
+        ):
+            continue
         try:
             entity_type = EntityType(new_e.entity_type)
         except ValueError:
@@ -92,7 +108,7 @@ def _apply_decision(decision: RefinerDecision, request: JudgementRequest) -> Jud
             )
         )
 
-    adjusted = DetectionResult.from_text(text=request.text, entities=kept + added)
+    adjusted = DetectionResult.from_text(text=text, entities=kept + added)
     return JudgementResult(adjusted=adjusted, removed=removed, added=added, reasoning=decision.reasoning)
 
 
@@ -113,7 +129,7 @@ async def refine(
 ) -> DetectionResult:
     """Run the LLM refiner and return cleaned detections.
 
-    Used internally by /detect and /anonymise when refine=True.
+    Used internally by /detect and /anonymise when mode='accurate'.
     """
     req = JudgementRequest(text=text, detections=detections)
     prompt = _build_refiner_prompt(req)

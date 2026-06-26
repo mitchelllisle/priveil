@@ -32,5 +32,6 @@ async def anonymise(
             text=request.text,
             detections=detections,
             operator_overrides=request.operator_overrides,
+            mode="fast",  # LLM refinement already applied above; do not re-run
         )
     )
