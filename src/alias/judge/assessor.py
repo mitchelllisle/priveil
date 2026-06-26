@@ -6,6 +6,7 @@ exposure, and handling guidance. Separate from the internal refiner.
 
 import json
 from collections import Counter
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -35,36 +36,8 @@ class AssessmentDecision(BaseModel):
     reasoning: str = Field(description="Brief explanation of the assessment")
 
 
-ASSESSOR_SYSTEM_PROMPT = """
-You are a data governance specialist for Australian financial services.
-
-Given a piece of text and its detected PII entities, produce a risk assessment
-that helps the caller understand how sensitive the content is and how to handle it.
-
-## Sensitivity tiers
-- critical — TFN, Medicare number, credit card, biometric data
-- high     — full name + account number, BSB, passport, driver licence
-- medium   — email, phone, address, partial financial identifiers
-- low      — ABN/ACN (business identifiers), publicly available info, no PII
-
-## Australian regulatory context
-| Framework          | Trigger                                                  |
-|--------------------|----------------------------------------------------------|
-| Privacy Act s16B   | Sensitive information (health, financial, identity)      |
-| AML-CTF Act s84    | Financial transaction records with customer identifiers  |
-| CDR Rules          | Consumer banking data shared under Open Banking          |
-| APRA CPS 234       | Information security — critical data assets              |
-| ATO data standards | Tax file numbers — strict handling and storage controls  |
-
-## Categories
-Use from: identity, financial, health, contact, legal, biometric
-
-## Instructions
-- Set overall_sensitivity to the highest tier of any entity present.
-- Only flag regulatory frameworks that genuinely apply.
-- recommended_handling should be specific and actionable.
-- reasoning should be one short paragraph.
-""".strip()
+_PROMPTS_DIR = Path(__file__).parent / "prompts"
+ASSESSOR_SYSTEM_PROMPT: str = (_PROMPTS_DIR / "assessor.md").read_text(encoding="utf-8").strip()
 
 
 def _build_assessment_prompt(request: AssessmentRequest, detections: DetectionResult) -> str:
