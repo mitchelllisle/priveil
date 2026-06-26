@@ -18,14 +18,14 @@ async def anonymise(
     """Anonymise PII entities in text using the configured operator strategies.
 
     If detections are omitted, detection runs automatically.
-    When refine=true (default) and a judge model is configured, detections are
-    refined by an LLM before anonymisation — callers see only the cleaned output.
+    When mode='accurate' (default) and a judge model is configured, detections are
+    refined by an LLM before anonymisation. mode='fast' skips the LLM entirely.
     Use operator_overrides to change the default strategy per entity type.
     """
     detections = request.detections
     if detections is None:
         detections = await analyser.analyse(DetectionRequest(text=request.text))
-    if request.refine and refiner is not None:
+    if request.mode == "accurate" and refiner is not None:
         detections = await refine(detections, request.text, refiner)
     return await anonymiser.anonymise(
         AnonymisationRequest(
