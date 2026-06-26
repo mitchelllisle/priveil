@@ -25,6 +25,10 @@ class AnonymisationRequest(BaseModel, frozen=True):
         default_factory=dict,
         description="Override the default operator per entity type, e.g. {'PERSON': 'redact'}",
     )
+    refine: bool = Field(
+        default=True,
+        description="Run LLM refinement on detections before anonymising. No-ops when no judge model is configured.",
+    )
 
 
 class AnonymisationResult(BaseModel, frozen=True):

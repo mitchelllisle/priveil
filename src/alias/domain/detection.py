@@ -13,6 +13,10 @@ class DetectionRequest(BaseModel, frozen=True):
     # Only English is supported in the current engine configuration.
     # Expand this Literal when multi-language support is added.
     language: Literal["en"] = Field(default="en", description="ISO 639-1 language code")
+    refine: bool = Field(
+        default=True,
+        description="Run LLM refinement to remove false positives. No-ops when no judge model is configured.",
+    )
 
 
 class DetectionResult(BaseModel, frozen=True):
