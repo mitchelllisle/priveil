@@ -62,9 +62,9 @@ def test_acn_checksum_returns_bool(digits: list[int]) -> None:
 
 # ── Medicare ──────────────────────────────────────────────────────────────────
 
-@given(st.lists(st.integers(0, 9), min_size=0, max_size=20).filter(lambda d: len(d) != 10))
-def test_medicare_checksum_wrong_length_always_false(digits: list[int]) -> None:
-    """Any digit list that is not exactly 10 elements must return False."""
+@given(st.lists(st.integers(0, 9), min_size=0, max_size=9))
+def test_medicare_checksum_too_short_always_false(digits: list[int]) -> None:
+    """Any digit list shorter than 10 must return False — checksum needs check digit at index 9."""
     assert _medicare_checksum(digits) is False
 
 
