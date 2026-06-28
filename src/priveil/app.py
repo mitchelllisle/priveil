@@ -1,3 +1,4 @@
+import importlib.metadata
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
@@ -12,6 +13,14 @@ from priveil.recognisers.registry import build_recognisers
 from priveil.settings import Settings
 
 
+def _version() -> str:
+    """Return the package version, falling back to 'dev' for source checkouts."""
+    try:
+        return importlib.metadata.version("priveil")
+    except importlib.metadata.PackageNotFoundError:
+        return "dev"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Startup / shutdown hook — initialise engines, yield, then clean up."""
@@ -22,7 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         extra_recognisers=build_recognisers(),
     )
     app.state.analyser = AsyncAnalyser(engine, executor)
-    app.state.pseudonymiser = AsyncPseudonymiser(AnonymizerEngine(), executor)  # type: ignore[no-untyped-call]
+    app.state.pseudonymiser = AsyncPseudonymiser(AnonymizerEngine(), executor)  # type: ignore[no-untyped-call]  # conduit: presidio untyped
 
     if settings.judge_model or settings.judge_base_url:
         from priveil.judge.assessor import build_assessor_agent
@@ -51,9 +60,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings = Settings()
 
     app = FastAPI(
-        title="Alias",
-        description="Pseudonymisation service for Australian financial context",
-        version="0.1.0",
+        title="Priveil",
+        description="Pseudonymisation service for Australian financial services",
+        version=_version(),
         lifespan=lifespan,
     )
     app.state.settings = settings
