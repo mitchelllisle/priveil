@@ -208,6 +208,36 @@ The API is at `http://localhost:8000`. Interactive docs at `http://localhost:800
 
 ---
 
+## MCP Server
+
+Priveil exposes its tools over the [Model Context Protocol](https://modelcontextprotocol.io), so LLM clients (Claude Desktop, Cursor, etc.) can call `detect`, `anonymise`, and `assess` directly.
+
+**Claude Desktop** — add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "priveil": {
+      "command": "uv",
+      "args": ["run", "--project", "/path/to/priveil", "python", "-m", "priveil.mcp"],
+      "env": {
+        "PRIVEIL_JUDGE_MODEL": "anthropic:claude-sonnet-4-6",
+        "ANTHROPIC_API_KEY": "<your-key>"
+      }
+    }
+  }
+}
+```
+
+**Tools available:**
+
+| Tool | Description |
+|------|-------------|
+| `detect` | Detect PII entities — returns types, offsets, sensitivity, audit hash |
+| `anonymise` | Replace PII with placeholders — returns anonymised text and entity map |
+| `assess` | Risk profile a document — requires `PRIVEIL_JUDGE_MODEL` |
+---
+
 ## Development
 
 ```bash
@@ -248,11 +278,15 @@ src/priveil/
 │   ├── prompts/         # System prompts as markdown files (refiner.md, assessor.md)
 │   ├── refiner.py       # Internal LLM refiner for mode='judge'
 │   └── assessor.py      # LLM assessor for POST /assess
+├── mcp/                 # Optional MCP server (pip install "priveil[mcp]")
+│   ├── server.py        # _State, lifespan, FastMCP instance
+│   └── tools.py         # detect/anonymise/assess tools
 ├── recognisers/         # AU-specific PatternRecognisers with checksum validation
 ├── settings.py          # Pydantic-settings, all vars prefixed PRIVEIL_
 └── app.py               # FastAPI app factory + lifespan
 
 tests/
 ├── unit/                # Pure function tests — no engine, no network
-└── integration/         # Full request→response via httpx AsyncClient
+├── integration/         # Full request→response via httpx AsyncClient
+└── mcp/                 # MCP tool tests
 ```
