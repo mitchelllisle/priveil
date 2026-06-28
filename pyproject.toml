@@ -1,6 +1,6 @@
 [project]
 name = "priveil"
-version = "0.1.0"
+version = "0.1.1"
 description = "Pseudonymisation service for Australian financial services"
 authors = [
     {name = "Mitchell Lisle", email = "m.lisle90@gmail.com"}
