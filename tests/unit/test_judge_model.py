@@ -1,4 +1,4 @@
-"""Unit tests for alias.judge.model.build_judge_model.
+"""Unit tests for priveil.judge.model.build_judge_model.
 
 Tests cover:
 - Built-in provider string returned as-is (anthropic/openai/bedrock prefix)
@@ -8,8 +8,8 @@ Tests cover:
 
 import pytest
 
-from alias.judge.model import build_judge_model
-from alias.settings import Settings
+from priveil.judge.model import build_judge_model
+from priveil.settings import Settings
 
 
 def _settings(**kwargs: object) -> Settings:
@@ -68,7 +68,7 @@ def test_custom_endpoint_returns_openai_chat_model() -> None:
 
 def test_no_model_raises_value_error() -> None:
     settings = _settings()  # judge_model defaults to None
-    with pytest.raises(ValueError, match="ALIAS_JUDGE_MODEL must be set"):
+    with pytest.raises(ValueError, match="PRIVEIL_JUDGE_MODEL must be set"):
         build_judge_model(settings)
 
 
@@ -78,7 +78,7 @@ def test_base_url_without_api_key_raises() -> None:
         judge_base_url="https://adb-123.azuredatabricks.net/serving-endpoints",
         # judge_api_key intentionally omitted
     )
-    with pytest.raises(ValueError, match="ALIAS_JUDGE_API_KEY must be set"):
+    with pytest.raises(ValueError, match="PRIVEIL_JUDGE_API_KEY must be set"):
         build_judge_model(settings)
 
 

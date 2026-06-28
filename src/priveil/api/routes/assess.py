@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-from alias.api.deps import AnalyserDep, AssessorDep
-from alias.domain.assessment import AssessmentRequest, AssessmentResult
-from alias.domain.detection import DetectionRequest
-from alias.judge.assessor import assess
+from priveil.api.deps import AnalyserDep, AssessorDep
+from priveil.domain.assessment import AssessmentRequest, AssessmentResult
+from priveil.domain.detection import DetectionRequest
+from priveil.judge.assessor import assess
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ async def assess_content(
 
     Returns an overall sensitivity tier, risk categories, applicable Australian
     regulatory frameworks, recommended handling guidance, and a per-entity-type
-    breakdown. Requires ALIAS_JUDGE_MODEL to be configured.
+    breakdown. Requires PRIVEIL_JUDGE_MODEL to be configured.
 
     Pass pre-computed detections to avoid running the detector twice.
     """

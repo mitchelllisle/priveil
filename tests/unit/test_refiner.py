@@ -1,10 +1,10 @@
-"""Unit tests for alias.judge.refiner — pure functions only, no I/O."""
+"""Unit tests for priveil.judge.refiner — pure functions only, no I/O."""
 
 
-from alias.domain.detection import DetectionResult
-from alias.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
-from alias.domain.judgement import JudgementRequest
-from alias.judge.refiner import RefinerDecision, _apply_decision, _NewEntity
+from priveil.domain.detection import DetectionResult
+from priveil.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
+from priveil.domain.judgement import JudgementRequest
+from priveil.judge.refiner import RefinerDecision, _apply_decision, _NewEntity
 
 
 def _entity(entity_type: EntityType, text: str, start: int = 0) -> Entity:

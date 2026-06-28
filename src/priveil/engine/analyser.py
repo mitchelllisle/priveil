@@ -6,8 +6,8 @@ from presidio_analyzer import AnalyzerEngine, EntityRecognizer, RecognizerRegist
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_analyzer.recognizer_result import RecognizerResult
 
-from alias.domain.detection import DetectionRequest, DetectionResult
-from alias.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
+from priveil.domain.detection import DetectionRequest, DetectionResult
+from priveil.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
 
 
 def build_analyser_engine(

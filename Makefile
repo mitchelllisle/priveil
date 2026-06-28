@@ -12,7 +12,7 @@ install-docs: ## Install docs dependencies
 	uv sync --group docs
 
 serve: ## Run the server locally with hot-reload
-	uv run uvicorn alias.app:app --reload --host 0.0.0.0 --port 8000
+	uv run uvicorn priveil.app:app --reload --host 0.0.0.0 --port 8000
 
 test: ## Run tests locally
 	uv run pytest tests/ -v

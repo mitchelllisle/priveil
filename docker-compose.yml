@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      ALIAS_DEBUG: "false"
+      PRIVEIL_DEBUG: "false"
 
   test:
     build:

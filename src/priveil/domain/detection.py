@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from alias.domain.entities import Entity
+from priveil.domain.entities import Entity
 
 
 class DetectionRequest(BaseModel, frozen=True):

@@ -6,7 +6,7 @@ for PII and sensitivity are correct — no engine or network required.
 
 import pytest
 
-from alias.domain.entities import ENTITY_CLASSIFICATION, EntityType
+from priveil.domain.entities import ENTITY_CLASSIFICATION, EntityType
 
 
 def test_every_entity_type_has_classification() -> None:

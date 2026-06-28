@@ -44,8 +44,8 @@ jobs:
           docker build \
             --target test \
             --build-arg PYTHON_VERSION=${{ matrix.python-version }} \
-            --tag alias-test:${{ matrix.python-version }} \
+            --tag priveil-test:${{ matrix.python-version }} \
             .
 
       - name: Run tests
-        run: docker run --rm alias-test:${{ matrix.python-version }}
+        run: docker run --rm priveil-test:${{ matrix.python-version }}

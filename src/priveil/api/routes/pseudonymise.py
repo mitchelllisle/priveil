@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-from alias.api.deps import AnalyserDep, PseudonymiserDep, RefinerDep
-from alias.domain.detection import DetectionRequest
-from alias.domain.pseudonymisation import PseudonymisationRequest, PseudonymisationResult
-from alias.judge.refiner import refine
+from priveil.api.deps import AnalyserDep, PseudonymiserDep, RefinerDep
+from priveil.domain.detection import DetectionRequest
+from priveil.domain.pseudonymisation import PseudonymisationRequest, PseudonymisationResult
+from priveil.judge.refiner import refine
 
 router = APIRouter()
 

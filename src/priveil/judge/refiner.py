@@ -12,14 +12,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from alias.settings import Settings
+    from priveil.settings import Settings
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from alias.domain.detection import DetectionResult
-from alias.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
-from alias.domain.judgement import JudgementRequest, JudgementResult
+from priveil.domain.detection import DetectionResult
+from priveil.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
+from priveil.domain.judgement import JudgementRequest, JudgementResult
 
 # ── LLM adapter type — shape the refiner agent must emit ─────────────────────
 
@@ -120,7 +120,7 @@ def _apply_decision(decision: RefinerDecision, request: JudgementRequest) -> Jud
 
 def build_refiner_agent(settings: Settings) -> Agent[None, RefinerDecision]:
     """Build the internal refiner agent from application settings."""
-    from alias.judge.model import build_judge_model
+    from priveil.judge.model import build_judge_model
     return Agent(
         model=build_judge_model(settings),
         output_type=RefinerDecision,

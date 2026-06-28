@@ -6,8 +6,8 @@ from functools import partial
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig, RecognizerResult
 
-from alias.domain.entities import Entity
-from alias.domain.pseudonymisation import OperatorType, PseudonymisationRequest, PseudonymisationResult
+from priveil.domain.entities import Entity
+from priveil.domain.pseudonymisation import OperatorType, PseudonymisationRequest, PseudonymisationResult
 
 # Default pseudonymisation strategy per entity type.
 # Presidio-specific parameter names live here in the engine, not in the domain.

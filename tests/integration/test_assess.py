@@ -56,7 +56,7 @@ async def test_assess_no_assessor_returns_503(detect_client: AsyncClient) -> Non
     """Client without assessor injected should return 503."""
     resp = await detect_client.post("/assess", json={"text": "some text"})
     assert resp.status_code == 503
-    assert "ALIAS_JUDGE_MODEL" in resp.json()["detail"]
+    assert "PRIVEIL_JUDGE_MODEL" in resp.json()["detail"]
 
 
 async def test_assess_empty_text_returns_422(assess_client: AsyncClient) -> None:
