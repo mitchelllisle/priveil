@@ -2085,10 +2085,11 @@ wheels = [
 
 [[package]]
 name = "priveil"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "mcp" },
     { name = "presidio-analyzer" },
     { name = "presidio-anonymizer" },
     { name = "pydantic" },
@@ -2118,6 +2119,7 @@ models = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.138.1" },
+    { name = "mcp", specifier = ">=1.28.0" },
     { name = "presidio-analyzer", specifier = ">=2.2.362" },
     { name = "presidio-anonymizer", specifier = ">=2.2.362" },
     { name = "pydantic", specifier = ">=2.13.4,<3.0" },
