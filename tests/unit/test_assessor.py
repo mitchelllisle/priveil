@@ -1,9 +1,9 @@
-"""Unit tests for alias.judge.assessor — pure functions only."""
+"""Unit tests for priveil.judge.assessor — pure functions only."""
 
-from alias.domain.assessment import AssessmentRequest
-from alias.domain.detection import DetectionResult
-from alias.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
-from alias.judge.assessor import _build_assessment_prompt, _entity_breakdown
+from priveil.domain.assessment import AssessmentRequest
+from priveil.domain.detection import DetectionResult
+from priveil.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
+from priveil.judge.assessor import _build_assessment_prompt, _entity_breakdown
 
 
 def _entity(entity_type: EntityType, text: str, start: int = 0) -> Entity:

@@ -12,7 +12,7 @@
 A pseudonymisation service for Australian financial services — useful for reducing obvious PII exposure in systems that handle financial text, but **not a substitute for true anonymisation**.
 
 > [!IMPORTANT]
-> **Read this before integrating:** Alias replaces known PII patterns with consistent placeholders. It cannot enumerate all possible identifying information, does not account for auxiliary data an attacker might possess, and makes no mathematical guarantee about re-identification risk. See [**On anonymisation and its limits**](#on-anonymisation-and-its-limits) below.
+> **Read this before integrating:** Priveil replaces known PII patterns with consistent placeholders. It cannot enumerate all possible identifying information, does not account for auxiliary data an attacker might possess, and makes no mathematical guarantee about re-identification risk. See [**On anonymisation and its limits**](#on-anonymisation-and-its-limits) below.
 
 ---
 
@@ -21,7 +21,7 @@ A pseudonymisation service for Australian financial services — useful for redu
 >
 > The word "anonymise" appears throughout this codebase and documentation because it is the term practitioners use. It is not accurate, and that matters.
 > 
-> What alias produces is **pseudonymisation**: detected entity spans are replaced with labelled placeholders (`<PERSON>`, `***-***-***`). The `entity_map` returned by `/anonymise` records the original PII spans as keys — it is sensitive data that must be protected with the same controls as the original text. (It is not a complete  reconstruction of the original: placeholders are not positionally indexed and multiple spans may collapse to the same label, so the map is useful for audit but not sufficient to reverse the full document on its own.)
+> What Priveil produces is **pseudonymisation**: detected entity spans are replaced with labelled placeholders (`<PERSON>`, `***-***-***`). The `entity_map` returned by `/anonymise` records the original PII spans as keys — it is sensitive data that must be protected with the same controls as the original text. (It is not a complete  reconstruction of the original: placeholders are not positionally indexed and multiple spans may collapse to the same label, so the map is useful for audit but not sufficient to reverse the full document on its own.)
 > 
 > Beyond that, no tool that works by finding and replacing known patterns can produce truly anonymous data, for three reasons that the privacy research literature has established clearly:
 > 
@@ -34,7 +34,7 @@ A pseudonymisation service for Australian financial services — useful for redu
 > [!TIP]
 > The only approach with a mathematical guarantee that holds regardless of auxiliary data and future attacks is differential privacy — applied to aggregations, not to text. If you need data that is safe to publish or share without downstream privacy controls, you need differential privacy, not this service.
 > 
-> **What alias is useful for:** keeping PII out of logs and analytics pipelines, reducing accidental exposure when data crosses trust boundaries, improving compliance posture, and making data *less obviously identifying* for operational purposes. These are real and valuable things. They are not anonymisation.
+> **What Priveil is useful for:** keeping PII out of logs and analytics pipelines, reducing accidental exposure when data crosses trust boundaries, improving compliance posture, and making data *less obviously identifying* for operational purposes. These are real and valuable things. They are not anonymisation.
 > 
 > For further reading: Damien Desfontaines' [*What anonymization techniques can you trust?*](https://desfontain.es/blog/trustworthy-anonymization.html) is the clearest account of why pattern-based techniques fail. Katharine Jarmul's [*Probably Private*](https://probablyprivate.com/) covers probabilistic privacy and the practical gap between claimed and actual privacy guarantees.
 
@@ -77,7 +77,7 @@ curl -X POST http://localhost:8000/detect \
 
 | Value | Behaviour |
 |-------|-----------|
-| `"judge"` | Runs an LLM pass to remove false positives before returning. Requires `ALIAS_JUDGE_MODEL`. Degrades silently to `"fast"` when unconfigured. |
+| `"judge"` | Runs an LLM pass to remove false positives before returning. Requires `PRIVEIL_JUDGE_MODEL`. Degrades silently to `"fast"` when unconfigured. |
 | `"fast"` | Returns raw detector output immediately. No LLM involvement. |
 
 ### `POST /anonymise`
@@ -130,7 +130,7 @@ Available operators: `replace`, `mask`, `redact`, `hash`.
 
 ### `POST /assess`
 
-Produces a risk profile of a piece of text — overall sensitivity tier, applicable Australian regulatory frameworks, and handling guidance. Requires `ALIAS_JUDGE_MODEL`.
+Produces a risk profile of a piece of text — overall sensitivity tier, applicable Australian regulatory frameworks, and handling guidance. Requires `PRIVEIL_JUDGE_MODEL`.
 
 Pass pre-computed detections to avoid running the detector again.
 
@@ -162,7 +162,7 @@ curl -X POST http://localhost:8000/assess \
 
 ## Australian Entity Types
 
-Alias ships purpose-built recognisers for Australian financial identifiers, each with checksum validation where the issuing authority publishes an algorithm.
+Priveil ships purpose-built recognisers for Australian financial identifiers, each with checksum validation where the issuing authority publishes an algorithm.
 
 | Entity type | Description | PII | Sensitivity | Validation |
 |-------------|-------------|-----|-------------|-----------|
@@ -184,11 +184,11 @@ Copy `.env.example` to `.env` and set values.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ALIAS_JUDGE_MODEL` | _(unset)_ | LLM for `mode='judge'` and `/assess`. Format: `provider:model`, e.g. `anthropic:claude-sonnet-4-6` |
-| `ALIAS_JUDGE_TEMPERATURE` | `0.0` | Sampling temperature for the LLM judge |
-| `ALIAS_SPACY_MODEL` | `en_core_web_sm` | spaCy model. Use `en_core_web_lg` for higher recall in production |
-| `ALIAS_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool size for presidio (CPU-bound) |
-| `ALIAS_DEBUG` | `false` | Enable FastAPI debug mode |
+| `PRIVEIL_JUDGE_MODEL` | _(unset)_ | LLM for `mode='judge'` and `/assess`. Format: `provider:model`, e.g. `anthropic:claude-sonnet-4-6` |
+| `PRIVEIL_JUDGE_TEMPERATURE` | `0.0` | Sampling temperature for the LLM judge |
+| `PRIVEIL_SPACY_MODEL` | `en_core_web_sm` | spaCy model. Use `en_core_web_lg` for higher recall in production |
+| `PRIVEIL_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool size for presidio (CPU-bound) |
+| `PRIVEIL_DEBUG` | `false` | Enable FastAPI debug mode |
 | `ANTHROPIC_API_KEY` | _(unset)_ | Required when using the `anthropic` provider |
 | `OPENAI_API_KEY` | _(unset)_ | Required when using the `openai` provider |
 
@@ -238,7 +238,7 @@ CI runs the full test matrix across Python 3.11, 3.12, and 3.13.
 ## Project structure
 
 ```
-src/alias/
+src/priveil/
 ├── api/
 │   ├── deps.py          # FastAPI dependency injection
 │   └── routes/          # detect, anonymise, assess, health
@@ -249,7 +249,7 @@ src/alias/
 │   ├── refiner.py       # Internal LLM refiner for mode='judge'
 │   └── assessor.py      # LLM assessor for POST /assess
 ├── recognisers/         # AU-specific PatternRecognisers with checksum validation
-├── settings.py          # Pydantic-settings, all vars prefixed ALIAS_
+├── settings.py          # Pydantic-settings, all vars prefixed PRIVEIL_
 └── app.py               # FastAPI app factory + lifespan
 
 tests/

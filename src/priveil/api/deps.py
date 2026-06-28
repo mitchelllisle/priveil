@@ -3,10 +3,10 @@ from typing import Annotated, cast
 from fastapi import Depends, HTTPException, Request
 from pydantic_ai import Agent
 
-from alias.engine.analyser import AsyncAnalyser
-from alias.engine.pseudonymiser import AsyncPseudonymiser
-from alias.judge.assessor import AssessmentDecision
-from alias.judge.refiner import RefinerDecision
+from priveil.engine.analyser import AsyncAnalyser
+from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.judge.assessor import AssessmentDecision
+from priveil.judge.refiner import RefinerDecision
 
 
 def _get_analyser(request: Request) -> AsyncAnalyser:
@@ -35,7 +35,7 @@ def _get_assessor(request: Request) -> "Agent[None, AssessmentDecision]":
     if agent is None:
         raise HTTPException(
             status_code=503,
-            detail="Assessment not available — set ALIAS_JUDGE_MODEL to enable",
+            detail="Assessment not available — set PRIVEIL_JUDGE_MODEL to enable",
         )
     return agent  # type: ignore[no-any-return]
 

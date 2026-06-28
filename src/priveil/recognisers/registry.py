@@ -1,11 +1,11 @@
 from presidio_analyzer import EntityRecognizer
 
-from alias.recognisers.au_abn import AUABNRecogniser
-from alias.recognisers.au_acn import AUACNRecogniser
-from alias.recognisers.au_bsb import AUBSBRecogniser
-from alias.recognisers.au_medicare import AUMedicareRecogniser
-from alias.recognisers.au_phone import AUPhoneRecogniser
-from alias.recognisers.au_tfn import AUTFNRecogniser
+from priveil.recognisers.au_abn import AUABNRecogniser
+from priveil.recognisers.au_acn import AUACNRecogniser
+from priveil.recognisers.au_bsb import AUBSBRecogniser
+from priveil.recognisers.au_medicare import AUMedicareRecogniser
+from priveil.recognisers.au_phone import AUPhoneRecogniser
+from priveil.recognisers.au_tfn import AUTFNRecogniser
 
 
 def build_recognisers() -> list[EntityRecognizer]:

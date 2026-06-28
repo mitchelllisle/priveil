@@ -6,18 +6,18 @@ from httpx import ASGITransport, AsyncClient
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 
-from alias.app import create_app
-from alias.engine.analyser import AsyncAnalyser, build_analyser_engine
-from alias.engine.pseudonymiser import AsyncPseudonymiser
-from alias.judge.assessor import AssessmentDecision
-from alias.judge.refiner import RefinerDecision
-from alias.recognisers.registry import build_recognisers
-from alias.settings import Settings
+from priveil.app import create_app
+from priveil.engine.analyser import AsyncAnalyser, build_analyser_engine
+from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.judge.assessor import AssessmentDecision
+from priveil.judge.refiner import RefinerDecision
+from priveil.recognisers.registry import build_recognisers
+from priveil.settings import Settings
 
 
 @pytest.fixture(scope="session")
 def test_settings() -> Settings:
-    # _env_file=None disables .env file loading. OS-level ALIAS_* environment
+    # _env_file=None disables .env file loading. OS-level PRIVEIL_* environment
     # variables are still read by BaseSettings — keep them unset in your local
     # shell to avoid polluting the test suite.
     return Settings(_env_file=None, spacy_model="en_core_web_sm")

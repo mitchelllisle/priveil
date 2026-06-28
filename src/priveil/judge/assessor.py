@@ -12,13 +12,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from alias.settings import Settings
+    from priveil.settings import Settings
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from alias.domain.assessment import AssessmentRequest, AssessmentResult, EntityBreakdown
-from alias.domain.detection import DetectionResult
+from priveil.domain.assessment import AssessmentRequest, AssessmentResult, EntityBreakdown
+from priveil.domain.detection import DetectionResult
 
 # ── LLM adapter type ──────────────────────────────────────────────────────────
 
@@ -84,7 +84,7 @@ def _entity_breakdown(detections: DetectionResult) -> list[EntityBreakdown]:
 
 def build_assessor_agent(settings: Settings) -> Agent[None, AssessmentDecision]:
     """Build the assessor agent from application settings."""
-    from alias.judge.model import build_judge_model
+    from priveil.judge.model import build_judge_model
     return Agent(
         model=build_judge_model(settings),
         output_type=AssessmentDecision,

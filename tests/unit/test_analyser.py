@@ -7,9 +7,9 @@ No mocks.
 
 from presidio_analyzer.recognizer_result import RecognizerResult
 
-from alias.domain.detection import DetectionRequest
-from alias.domain.entities import EntityType
-from alias.engine.analyser import AsyncAnalyser, _to_entity
+from priveil.domain.detection import DetectionRequest
+from priveil.domain.entities import EntityType
+from priveil.engine.analyser import AsyncAnalyser, _to_entity
 
 # ── _to_entity ────────────────────────────────────────────────────────────────
 

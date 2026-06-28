@@ -21,11 +21,11 @@ RUN uv pip install --no-deps . --no-cache-dir
 FROM base AS runtime
 
 # Production deployments use en_core_web_lg; download at deploy time via:
-#   ALIAS_SPACY_MODEL=en_core_web_lg python -m spacy download en_core_web_lg
+#   PRIVEIL_SPACY_MODEL=en_core_web_lg python -m spacy download en_core_web_lg
 # or bake into a derived image.
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "alias.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "priveil.app:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ── test ──────────────────────────────────────────────────────────────────────
 FROM base AS test

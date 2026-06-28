@@ -6,8 +6,8 @@ before they are returned from /detect and /pseudonymise.
 
 from pydantic import BaseModel
 
-from alias.domain.detection import DetectionResult
-from alias.domain.entities import Entity
+from priveil.domain.detection import DetectionResult
+from priveil.domain.entities import Entity
 
 
 class JudgementRequest(BaseModel, frozen=True):

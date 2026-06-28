@@ -7,10 +7,10 @@ values from the relevant authority (ATO, ASIC, Services Australia).
 
 import pytest
 
-from alias.recognisers.au_abn import AUABNRecogniser, _abn_checksum
-from alias.recognisers.au_acn import AUACNRecogniser, _acn_checksum
-from alias.recognisers.au_medicare import AUMedicareRecogniser, _medicare_checksum
-from alias.recognisers.au_tfn import AUTFNRecogniser, _tfn_checksum
+from priveil.recognisers.au_abn import AUABNRecogniser, _abn_checksum
+from priveil.recognisers.au_acn import AUACNRecogniser, _acn_checksum
+from priveil.recognisers.au_medicare import AUMedicareRecogniser, _medicare_checksum
+from priveil.recognisers.au_tfn import AUTFNRecogniser, _tfn_checksum
 
 # ── TFN ───────────────────────────────────────────────────────────────────────
 

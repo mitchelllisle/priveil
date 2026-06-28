@@ -1,6 +1,6 @@
-# Domain: Alias — Pseudonymisation Service
+# Domain: Priveil — Pseudonymisation Service
 
-> **One sentence:** Alias detects known PII patterns in text and replaces them with consistent placeholders, reducing the surface area of obvious personal data exposure in Australian financial services systems — while making no claim of true anonymisation.
+> **One sentence:** Priveil detects known PII patterns in text and replaces them with consistent placeholders, reducing the surface area of obvious personal data exposure in Australian financial services systems — while making no claim of true anonymisation.
 
 ---
 
@@ -177,13 +177,13 @@ Consequences: High precision on AU financial entities. No magic fallback — if 
 
 **Decision: This service provides pseudonymisation, not anonymisation**
 Context: The research literature is unambiguous that pattern-based de-identification does not produce mathematically anonymous data. Data is more identifiable than it appears; auxiliary data can break any scheme that does not have a provable guarantee; attacks improve over time. See Desfontaines, *What anonymization techniques can you trust?* (2023); Jarmul, *Probably Private* (ongoing). Only differential privacy provides guarantees that are resistant to arbitrary auxiliary data and future attacks.
-Decision: This service is explicitly scoped to **operational pseudonymisation** — reducing obvious PII exposure in systems that handle financial text. It does not claim to produce anonymised data. The name "Alias" and the term "pseudonymisation" are used throughout to signal this scope. True anonymisation is out of scope.
+Decision: This service is explicitly scoped to **operational pseudonymisation** — reducing obvious PII exposure in systems that handle financial text. It does not claim to produce anonymised data. The name "Priveil" and the term "pseudonymisation" are used throughout to signal this scope. True anonymisation is out of scope.
 Consequences: Callers who need data that is safe to publish or share without privacy controls must use differential privacy, not this service. The `entity_map` must be treated as sensitive. The service is useful and valuable within its stated scope — preventing accidental PII exposure, meeting process requirements, improving compliance posture — without overclaiming.
 
 **Decision: Mode (fast/judge) is per-request, not a server-side global**
 Context: Some callers need throughput (batch jobs); others need accuracy (interactive, compliance-sensitive).
 Decision: `mode` is a field on DetectionRequest and AnonymisationRequest. `judge` is the default. The LLM is only invoked when mode = `judge` and a judge model is configured.
-Consequences: Callers opt out explicitly by setting `mode: fast`. When ALIAS_JUDGE_MODEL is unset, judge silently degrades to fast — no config change required on the client side.
+Consequences: Callers opt out explicitly by setting `mode: fast`. When PRIVEIL_JUDGE_MODEL is unset, judge silently degrades to fast — no config change required on the client side.
 
 **Decision: Refiner is internal; Assessment is the only LLM-facing endpoint**
 Context: Exposing an endpoint that lets callers "judge" detector accuracy couples them to an internal implementation detail and reveals that AI is involved in routine detection.
@@ -204,7 +204,7 @@ Consequences: Near-zero false positives on AU financial identifiers in structure
 - Clean financial text (interest rates, loan amounts, product codes) produces zero entities — no noise that burdens downstream systems.
 - Mode = `judge` removes the false positives that pattern matching alone cannot; mode = `fast` is suitable for high-volume preprocessing where a small FP rate is acceptable.
 - Callers understand what they have and have not received. A caller who receives a pseudonymised document knows they still have sensitive data that requires appropriate controls.
-- The service adds no friction to callers who don't want the LLM — `ALIAS_JUDGE_MODEL` unset means the service runs purely on presidio with no degraded behaviour, just no LLM features.
+- The service adds no friction to callers who don't want the LLM — `PRIVEIL_JUDGE_MODEL` unset means the service runs purely on presidio with no degraded behaviour, just no LLM features.
 
 **How we know the domain is struggling:**
 - False positive rate on clean financial text rises — rates, amounts, dates being flagged as entities.

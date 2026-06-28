@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from alias.domain.detection import DetectionResult
+from priveil.domain.detection import DetectionResult
 
 # The set of pseudonymisation strategies understood by the engine.
 # Intentionally a domain concept — engine translates these to presidio specifics.

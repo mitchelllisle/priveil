@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from presidio_anonymizer import AnonymizerEngine
 
-from alias.api.routes import assess, detect, health, pseudonymise
-from alias.engine.analyser import AsyncAnalyser, build_analyser_engine
-from alias.engine.pseudonymiser import AsyncPseudonymiser
-from alias.recognisers.registry import build_recognisers
-from alias.settings import Settings
+from priveil.api.routes import assess, detect, health, pseudonymise
+from priveil.engine.analyser import AsyncAnalyser, build_analyser_engine
+from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.recognisers.registry import build_recognisers
+from priveil.settings import Settings
 
 
 @asynccontextmanager
@@ -25,8 +25,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.pseudonymiser = AsyncPseudonymiser(AnonymizerEngine(), executor)  # type: ignore[no-untyped-call]
 
     if settings.judge_model or settings.judge_base_url:
-        from alias.judge.assessor import build_assessor_agent
-        from alias.judge.refiner import build_refiner_agent
+        from priveil.judge.assessor import build_assessor_agent
+        from priveil.judge.refiner import build_refiner_agent
 
         app.state.refiner = build_refiner_agent(settings)
         app.state.assessor = build_assessor_agent(settings)
