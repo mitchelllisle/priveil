@@ -109,38 +109,41 @@ def test_build_operators_override_replace_has_new_value() -> None:
 # ── AsyncPseudonymiser ────────────────────────────────────────────────────────
 
 async def test_pseudonymise_replaces_email(pseudonymiser: AsyncPseudonymiser) -> None:
-    from priveil.domain.detection import DetectionResult
+    from priveil.domain.detection import DetectionData
     from priveil.domain.pseudonymisation import PseudonymisationRequest
 
     entity = _entity(EntityType.EMAIL_ADDRESS, "jane@example.com", start=12)
-    detections = DetectionResult.from_text("Send email to jane@example.com", [entity])
-    req = PseudonymisationRequest(text="Send email to jane@example.com", detections=detections)
+    req = PseudonymisationRequest(
+        text="Send email to jane@example.com",
+        detections=DetectionData(entities=(entity,)),
+    )
     result = await pseudonymiser.pseudonymise(req)
     assert "jane@example.com" not in result.anonymised_text
     assert "<EMAIL>" in result.anonymised_text
 
 
 async def test_pseudonymise_replaces_tfn(pseudonymiser: AsyncPseudonymiser) -> None:
-    from priveil.domain.detection import DetectionResult
+    from priveil.domain.detection import DetectionData
     from priveil.domain.pseudonymisation import PseudonymisationRequest
 
     entity = _entity(EntityType.AU_TFN, "123 456 782", start=7)
-    detections = DetectionResult.from_text("TFN is 123 456 782", [entity])
-    req = PseudonymisationRequest(text="TFN is 123 456 782", detections=detections)
+    req = PseudonymisationRequest(
+        text="TFN is 123 456 782",
+        detections=DetectionData(entities=(entity,)),
+    )
     result = await pseudonymiser.pseudonymise(req)
     assert "123 456 782" not in result.anonymised_text
     assert "***-***-***" in result.anonymised_text
 
 
 async def test_pseudonymise_operator_override_redact(pseudonymiser: AsyncPseudonymiser) -> None:
-    from priveil.domain.detection import DetectionResult
+    from priveil.domain.detection import DetectionData
     from priveil.domain.pseudonymisation import PseudonymisationRequest
 
     entity = _entity(EntityType.PERSON, "Jane Smith", start=8)
-    detections = DetectionResult.from_text("Contact Jane Smith today", [entity])
     req = PseudonymisationRequest(
         text="Contact Jane Smith today",
-        detections=detections,
+        detections=DetectionData(entities=(entity,)),
         operator_overrides={"PERSON": "redact"},
     )
     result = await pseudonymiser.pseudonymise(req)
@@ -148,15 +151,14 @@ async def test_pseudonymise_operator_override_redact(pseudonymiser: AsyncPseudon
 
 
 async def test_pseudonymise_operator_override_mask(pseudonymiser: AsyncPseudonymiser) -> None:
-    from priveil.domain.detection import DetectionResult
+    from priveil.domain.detection import DetectionData
     from priveil.domain.pseudonymisation import PseudonymisationRequest
 
     text = "My TFN is 123 456 782"
     entity = _entity(EntityType.AU_TFN, "123 456 782", start=10)
-    detections = DetectionResult.from_text(text, [entity])
     req = PseudonymisationRequest(
         text=text,
-        detections=detections,
+        detections=DetectionData(entities=(entity,)),
         operator_overrides={"AU_TFN": "mask"},
     )
     result = await pseudonymiser.pseudonymise(req)
@@ -164,23 +166,24 @@ async def test_pseudonymise_operator_override_mask(pseudonymiser: AsyncPseudonym
 
 
 async def test_pseudonymise_no_entities_text_unchanged(pseudonymiser: AsyncPseudonymiser) -> None:
-    from priveil.domain.detection import DetectionResult
+    from priveil.domain.detection import DetectionData
     from priveil.domain.pseudonymisation import PseudonymisationRequest
 
     text = "Interest rate is 5.5% per annum."
-    detections = DetectionResult.from_text(text, [])
-    req = PseudonymisationRequest(text=text, detections=detections)
+    req = PseudonymisationRequest(text=text, detections=DetectionData(entities=()))
     result = await pseudonymiser.pseudonymise(req)
     assert result.anonymised_text == text
 
 
 async def test_pseudonymise_entity_map_populated(pseudonymiser: AsyncPseudonymiser) -> None:
-    from priveil.domain.detection import DetectionResult
+    from priveil.domain.detection import DetectionData
     from priveil.domain.pseudonymisation import PseudonymisationRequest
 
     entity = _entity(EntityType.AU_BSB, "062-000", start=4)
-    detections = DetectionResult.from_text("BSB 062-000", [entity])
-    req = PseudonymisationRequest(text="BSB 062-000", detections=detections)
+    req = PseudonymisationRequest(
+        text="BSB 062-000",
+        detections=DetectionData(entities=(entity,)),
+    )
     result = await pseudonymiser.pseudonymise(req)
     assert "062-000" in result.entity_map
     assert result.entity_map["062-000"] == "XXX-XXX"

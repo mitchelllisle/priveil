@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from priveil.domain.assessment import AssessmentRequest, AssessmentResult, EntityBreakdown
+from priveil.domain.assessment import AssessmentData, AssessmentRequest, EntityBreakdown
 from priveil.domain.detection import DetectionResult
 
 # ── LLM adapter type ──────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ async def assess(
     request: AssessmentRequest,
     detections: DetectionResult,
     agent: Agent[None, AssessmentDecision],
-) -> AssessmentResult:
+) -> AssessmentData:
     """Run the LLM assessor and return an AssessmentResult.
 
     Args:
@@ -118,18 +118,19 @@ async def assess(
         agent: The assessor Agent instance.
 
     Returns:
-        AssessmentResult with risk profile and entity breakdown.
+        AssessmentData with risk profile and entity breakdown.
+        The advisory disclaimer is not included here — the route adds it to
+        ``meta.response.advisory_disclaimer``.
     """
     prompt = _build_assessment_prompt(request, detections)
     result = await agent.run(prompt)
     decision = result.output
-    return AssessmentResult(
+    return AssessmentData(
         overall_sensitivity=decision.overall_sensitivity,
         risk_summary=decision.risk_summary,
         categories=decision.categories,
         regulatory_flags=decision.regulatory_flags,
         recommended_handling=decision.recommended_handling,
-        advisory_disclaimer=ASSESSMENT_ADVISORY_DISCLAIMER,
         entity_breakdown=_entity_breakdown(detections),
         reasoning=decision.reasoning,
     )

@@ -1,14 +1,26 @@
 import asyncio
 import secrets
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from functools import lru_cache, partial
+from typing import Literal
 
 from presidio_analyzer import AnalyzerEngine, EntityRecognizer, RecognizerRegistry
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_analyzer.recognizer_result import RecognizerResult
 
-from priveil.domain.detection import DetectionRequest, DetectionResult
+from priveil.domain.detection import DetectionData, DetectionRequest, DetectionResult
 from priveil.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
+
+
+@lru_cache(maxsize=1)
+def _ephemeral_audit_key() -> bytes:
+    """Return a process-scoped ephemeral HMAC key for audit hashing.
+
+    lru_cache ensures every ``AsyncAnalyser`` instance without an explicit key
+    shares the same bytes object for the process lifetime. Hashes are therefore
+    stable across requests even if the analyser is reconstructed.
+    """
+    return secrets.token_bytes(32)
 
 
 def build_analyser_engine(
@@ -18,11 +30,11 @@ def build_analyser_engine(
     """Build and configure a presidio AnalyzerEngine.
 
     Args:
-        spacy_model: spaCy model name, e.g. 'en_core_web_lg'.
-        extra_recognisers: Additional recognisers to register (added in later slices).
+        spacy_model: spaCy model name to use for NLP processing.
+        extra_recognisers: Additional recognisers to register.
 
     Returns:
-        A fully configured AnalyzerEngine ready for analysis.
+        Configured AnalyzerEngine with all recognisers registered.
     """
     provider = NlpEngineProvider(
         nlp_configuration={
@@ -41,16 +53,12 @@ def build_analyser_engine(
 def _to_entity(result: RecognizerResult, text: str) -> Entity | None:
     """Convert a presidio RecognizerResult to an Entity.
 
-    Presidio results cross a trust boundary — unknown entity types are filtered
-    rather than passed through, so the rest of the system only sees types
-    explicitly declared in EntityType.
-
     Args:
-        result: Raw result from presidio AnalyzerEngine.
-        text: The original input text (used to extract the matched span).
+        result: Presidio recognition result with entity type and offsets.
+        text: Original text the result was extracted from.
 
     Returns:
-        Entity if the type is in EntityType, None otherwise.
+        Entity if the entity type is known, None otherwise.
     """
     try:
         entity_type = EntityType(result.entity_type)
@@ -71,8 +79,8 @@ def _to_entity(result: RecognizerResult, text: str) -> Entity | None:
 class AsyncAnalyser:
     """Async wrapper around presidio AnalyzerEngine.
 
-    presidio is synchronous; every call is offloaded to a thread-pool executor
-    so the event loop is never blocked.
+    Offloads CPU-bound analysis to a thread-pool executor so it does not block
+    the event loop.
     """
 
     def __init__(
@@ -83,7 +91,10 @@ class AsyncAnalyser:
     ) -> None:
         self._engine = engine
         self._executor = executor
-        self._audit_hash_key = audit_hash_key or secrets.token_bytes(32)
+        # Use the caller-supplied key (for stable cross-restart correlation) or
+        # fall back to a process-scoped ephemeral key (consistent within a process
+        # lifetime even if the analyser is reconstructed).
+        self._audit_hash_key = audit_hash_key if audit_hash_key is not None else _ephemeral_audit_key()
 
     async def analyse(self, request: DetectionRequest) -> DetectionResult:
         """Detect PII entities in text.
@@ -110,3 +121,34 @@ class AsyncAnalyser:
             mode_used=request.mode,
             hash_key=self._audit_hash_key,
         )
+
+    def detections_from_entities(
+        self,
+        text: str,
+        entities: tuple[Entity, ...],
+        mode: Literal["fast", "judge"] = "fast",
+    ) -> DetectionResult:
+        """Build an internal DetectionResult from pre-computed DetectionData entities.
+
+        Used by routes when a client passes pre-computed ``DetectionData`` so that
+        the refiner pipeline receives a full ``DetectionResult`` (with stable hash).
+
+        Args:
+            text: The original input text (used to compute the audit hash).
+            entities: Entities from the pre-computed ``DetectionData``.
+            mode: Mode to record on the result.
+
+        Returns:
+            DetectionResult with the engine's stable audit hash key applied.
+        """
+        return DetectionResult.from_text(
+            text=text,
+            entities=list(entities),
+            mode_requested=mode,
+            mode_used=mode,
+            hash_key=self._audit_hash_key,
+        )
+
+    def to_detection_data(self, result: DetectionResult) -> DetectionData:
+        """Project an internal DetectionResult to the API-visible DetectionData."""
+        return DetectionData(entities=result.entities)

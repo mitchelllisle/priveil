@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from priveil.domain.detection import DetectionResult
+from priveil.domain.detection import DetectionData
 
 # The set of pseudonymisation strategies understood by the engine.
 # Intentionally a domain concept — engine translates these to presidio specifics.
@@ -14,10 +14,11 @@ class PseudonymisationRequest(BaseModel, frozen=True):
 
     If detections is omitted, the API layer runs detection automatically first.
     operator_overrides replaces the default strategy for a given entity type.
+    Pass ``body["data"]`` from a prior ``/detect`` response as ``detections``.
     """
 
     text: str = Field(..., min_length=1)
-    detections: DetectionResult | None = Field(
+    detections: DetectionData | None = Field(
         default=None,
         description="Pre-computed detections; omit to auto-detect",
     )
@@ -30,20 +31,21 @@ class PseudonymisationRequest(BaseModel, frozen=True):
         description=(
             "'judge' runs an LLM pass on detections before pseudonymising (slower). "
             "'fast' skips the LLM. Falls back to 'fast' when no judge model is configured "
-            "(surfaced via mode_used)."
+            "(surfaced via meta.response.mode)."
         ),
     )
 
 
-class PseudonymisationResult(BaseModel, frozen=True):
+class PseudonymisationData(BaseModel, frozen=True):
     """Pseudonymised text with an audit map of original span → replacement.
 
-    anonymised_text is authoritative. entity_map is an approximation for
+    Used as the ``data`` field of ``PriveilResponse[PseudonymisationData]``.
+    Mode tracking lives in ``meta``.
+
+    ``anonymised_text`` is authoritative. ``entity_map`` is an approximation for
     audit / downstream use; for mask and hash operators the exact output
     is not knowable before pseudonymisation runs.
     """
 
     anonymised_text: str
     entity_map: dict[str, str]
-    mode_requested: Literal["fast", "judge"] = "fast"
-    mode_used: Literal["fast", "judge"] = "fast"

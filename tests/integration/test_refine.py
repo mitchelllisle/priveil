@@ -14,7 +14,7 @@ async def test_detect_refine_true_runs_without_error(refined_client: AsyncClient
         "/detect", json={"text": "Jane Smith jane@example.com", "mode": "judge"}
     )
     assert resp.status_code == 200
-    assert "entities" in resp.json()
+    assert "entities" in resp.json()["data"]
 
 
 async def test_detect_refine_false_skips_refiner(refined_client: AsyncClient) -> None:
@@ -31,7 +31,7 @@ async def test_detect_no_refiner_refine_true_silently_skips(detect_client: Async
         "/detect", json={"text": "Jane Smith jane@example.com", "mode": "judge"}
     )
     assert resp.status_code == 200
-    assert len(resp.json()["entities"]) > 0
+    assert len(resp.json()["data"]["entities"]) > 0
 
 
 async def test_detect_mode_defaults_to_judge(detect_client: AsyncClient) -> None:
@@ -47,7 +47,7 @@ async def test_pseudonymise_refine_true_runs_without_error(refined_client: Async
         "/pseudonymise", json={"text": "Jane Smith TFN 123 456 782", "mode": "judge"}
     )
     assert resp.status_code == 200
-    assert "anonymised_text" in resp.json()
+    assert "anonymised_text" in resp.json()["data"]
 
 
 async def test_pseudonymise_refine_false_skips_refiner(refined_client: AsyncClient) -> None:
@@ -62,4 +62,4 @@ async def test_pseudonymise_no_refiner_refine_true_silently_skips(pseudonymise_c
         "/pseudonymise", json={"text": "jane@example.com", "mode": "judge"}
     )
     assert resp.status_code == 200
-    assert "jane@example.com" not in resp.json()["anonymised_text"]
+    assert "jane@example.com" not in resp.json()["data"]["anonymised_text"]
