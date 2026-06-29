@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter
 
 from priveil.api.deps import AnalyserDep, PseudonymiserDep, RefinerDep
@@ -6,6 +8,7 @@ from priveil.domain.pseudonymisation import PseudonymisationRequest, Pseudonymis
 from priveil.judge.refiner import refine
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("", response_model=PseudonymisationResult, summary="Pseudonymise PII in text")
@@ -24,9 +27,15 @@ async def pseudonymise(
     """
     detections = request.detections
     if detections is None:
-        detections = await analyser.analyse(DetectionRequest(text=request.text))
+        detections = await analyser.analyse(DetectionRequest(text=request.text, mode=request.mode))
+    mode_used = request.mode
     if request.mode == "judge" and refiner is not None:
         detections = await refine(detections, request.text, refiner)
+    elif request.mode == "judge":
+        mode_used = "fast"
+        logger.warning(
+            "mode='judge' requested for /pseudonymise but PRIVEIL_JUDGE_MODEL is unset; falling back to mode='fast'."
+        )
     return await pseudonymiser.pseudonymise(
         PseudonymisationRequest(
             text=request.text,
@@ -34,4 +43,4 @@ async def pseudonymise(
             operator_overrides=request.operator_overrides,
             mode="fast",  # LLM refinement already applied above; do not re-run
         )
-    )
+    ).model_copy(update={"mode_requested": request.mode, "mode_used": mode_used})

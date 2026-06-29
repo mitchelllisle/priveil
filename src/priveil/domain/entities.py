@@ -22,7 +22,7 @@ class EntityType(str, Enum):
     AU_TFN = "AU_TFN"            # Tax File Number — critical PII
     AU_ABN = "AU_ABN"            # Australian Business Number — not personal PII
     AU_ACN = "AU_ACN"            # Australian Company Number — not personal PII
-    AU_BSB = "AU_BSB"            # Bank State Branch code
+    AU_BSB = "AU_BSB"            # Bank State Branch code (routing identifier)
     AU_ACCOUNT_NUMBER = "AU_ACCOUNT_NUMBER"  # Bank account number
     AU_MEDICARE = "AU_MEDICARE"  # Medicare card number — critical PII
     AU_PHONE = "AU_PHONE"        # Australian mobile / landline
@@ -50,6 +50,9 @@ ENTITY_CLASSIFICATION: dict[EntityType, EntityClassification] = {
     EntityType.AU_TFN: EntityClassification(is_pii=True, sensitivity="critical"),
     EntityType.AU_ABN: EntityClassification(is_pii=False, sensitivity="low"),
     EntityType.AU_ACN: EntityClassification(is_pii=False, sensitivity="low"),
+    # BSB alone identifies a branch, not a person. We still classify it as high/PII
+    # in this domain because it commonly appears alongside account/customer data in
+    # financial workflows and materially increases re-identification exposure.
     EntityType.AU_BSB: EntityClassification(is_pii=True, sensitivity="high"),
     EntityType.AU_ACCOUNT_NUMBER: EntityClassification(is_pii=True, sensitivity="high"),
     EntityType.AU_MEDICARE: EntityClassification(is_pii=True, sensitivity="critical"),

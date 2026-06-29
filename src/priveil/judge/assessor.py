@@ -43,6 +43,9 @@ class AssessmentDecision(BaseModel):
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 ASSESSOR_SYSTEM_PROMPT: str = (_PROMPTS_DIR / "assessor.md").read_text(encoding="utf-8").strip()
+ASSESSMENT_ADVISORY_DISCLAIMER = (
+    "Regulatory flags and recommendations are LLM-generated advisory hints only, not legal determinations."
+)
 
 
 def _build_assessment_prompt(request: AssessmentRequest, detections: DetectionResult) -> str:
@@ -126,6 +129,7 @@ async def assess(
         categories=decision.categories,
         regulatory_flags=decision.regulatory_flags,
         recommended_handling=decision.recommended_handling,
+        advisory_disclaimer=ASSESSMENT_ADVISORY_DISCLAIMER,
         entity_breakdown=_entity_breakdown(detections),
         reasoning=decision.reasoning,
     )

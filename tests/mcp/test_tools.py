@@ -34,7 +34,7 @@ async def test_detect_clean_text_returns_no_entities(engine_state: _State) -> No
 
 async def test_detect_result_includes_audit_hash(engine_state: _State) -> None:
     result = await detect("some text", ctx=make_ctx(engine_state))
-    assert result.input_hash.startswith("sha256:")
+    assert result.input_hash.startswith("hmac-sha256:")
 
 
 async def test_anonymise_returns_pseudonymisation_result(engine_state: _State) -> None:

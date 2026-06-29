@@ -26,7 +26,7 @@ def _get_refiner(request: Request) -> "Agent[None, RefinerDecision] | None":
     return request.app.state.refiner  # type: ignore[no-any-return]  # conduit: app.state is untyped by FastAPI
 
 
-# Optional — routes silently skip refinement when this is None.
+# Optional — routes fall back to fast mode (with surfaced mode_used) when this is None.
 RefinerDep = Annotated["Agent[None, RefinerDecision] | None", Depends(_get_refiner)]
 
 

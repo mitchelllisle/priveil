@@ -40,5 +40,6 @@ class AssessmentResult(BaseModel, frozen=True):
         description="Applicable Australian regulatory frameworks, e.g. ['Privacy Act s16B']"
     )
     recommended_handling: str = Field(description="Concrete handling guidance for this content")
+    advisory_disclaimer: str = Field(description="Advisory note clarifying this output is not legal advice")
     entity_breakdown: list[EntityBreakdown]
     reasoning: str
