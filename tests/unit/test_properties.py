@@ -62,13 +62,13 @@ def test_acn_checksum_returns_bool(digits: list[int]) -> None:
 
 # ── Medicare ──────────────────────────────────────────────────────────────────
 
-@given(st.lists(st.integers(0, 9), min_size=0, max_size=9))
+@given(st.lists(st.integers(0, 9), min_size=0, max_size=8))
 def test_medicare_checksum_too_short_always_false(digits: list[int]) -> None:
-    """Any digit list shorter than 10 must return False — checksum needs check digit at index 9."""
+    """Any digit list shorter than 9 must return False — checksum needs check digit at index 8."""
     assert _medicare_checksum(digits) is False
 
 
-@given(st.lists(st.integers(0, 9), min_size=10, max_size=10))
+@given(st.lists(st.integers(0, 9), min_size=9, max_size=10))
 def test_medicare_checksum_returns_bool(digits: list[int]) -> None:
     """Checksum always returns a bool, never raises."""
     result = _medicare_checksum(digits)
