@@ -7,7 +7,7 @@ from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig, RecognizerResult
 
 from priveil.domain.entities import Entity
-from priveil.domain.pseudonymisation import OperatorType, PseudonymisationRequest, PseudonymisationResult
+from priveil.domain.pseudonymisation import OperatorType, PseudonymisationData, PseudonymisationRequest
 
 # Default pseudonymisation strategy per entity type.
 # Presidio-specific parameter names live here in the engine, not in the domain.
@@ -115,14 +115,14 @@ class AsyncPseudonymiser:
         self._engine = engine
         self._executor = executor
 
-    async def pseudonymise(self, request: PseudonymisationRequest) -> PseudonymisationResult:
+    async def pseudonymise(self, request: PseudonymisationRequest) -> PseudonymisationData:
         """Pseudonymise text using the entities from a DetectionResult.
 
         Args:
             request: PseudonymisationRequest; detections must be populated by the caller.
 
         Returns:
-            PseudonymisationResult with pseudonymised text and audit entity_map.
+            PseudonymisationData with pseudonymised text and audit entity_map.
 
         Raises:
             ValueError: if request.detections is None.
@@ -142,4 +142,4 @@ class AsyncPseudonymiser:
             operators=operators,
         )
         result = await loop.run_in_executor(self._executor, _run)
-        return PseudonymisationResult(anonymised_text=result.text, entity_map=entity_map)
+        return PseudonymisationData(anonymised_text=result.text, entity_map=entity_map)

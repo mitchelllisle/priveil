@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from priveil.domain.detection import DetectionResult
+from priveil.domain.detection import DetectionData
 
 
 class EntityBreakdown(BaseModel, frozen=True):
@@ -17,9 +17,10 @@ class AssessmentRequest(BaseModel, frozen=True):
     """Request to assess the risk profile of a piece of text."""
 
     text: str = Field(..., min_length=1)
-    detections: DetectionResult | None = Field(
+    detections: DetectionData | None = Field(
         default=None,
-        description="Pre-computed detections; omit to auto-detect",
+        description="Pre-computed detections; omit to auto-detect. "
+                    "Pass ``body['data']`` from a prior ``/detect`` response.",
     )
     context: str | None = Field(
         default=None,
@@ -27,9 +28,11 @@ class AssessmentRequest(BaseModel, frozen=True):
     )
 
 
-class AssessmentResult(BaseModel, frozen=True):
+class AssessmentData(BaseModel, frozen=True):
     """Risk profile of a piece of text.
 
+    Used as the ``data`` field of ``PriveilResponse[AssessmentData]``.
+    The advisory disclaimer lives in ``meta.response.advisory_disclaimer``.
     Produced by the LLM assessor; entity_breakdown is computed from detections.
     """
 
@@ -40,6 +43,5 @@ class AssessmentResult(BaseModel, frozen=True):
         description="Applicable Australian regulatory frameworks, e.g. ['Privacy Act s16B']"
     )
     recommended_handling: str = Field(description="Concrete handling guidance for this content")
-    advisory_disclaimer: str = Field(description="Advisory note clarifying this output is not legal advice")
     entity_breakdown: list[EntityBreakdown]
     reasoning: str

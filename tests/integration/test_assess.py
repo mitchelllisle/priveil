@@ -16,15 +16,23 @@ async def test_assess_response_shape(assess_client: AsyncClient) -> None:
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert "overall_sensitivity" in body
-    assert "risk_summary" in body
-    assert "categories" in body
-    assert "regulatory_flags" in body
-    assert "recommended_handling" in body
-    assert "advisory_disclaimer" in body
-    assert "entity_breakdown" in body
-    assert "reasoning" in body
-    assert isinstance(body["entity_breakdown"], list)
+    assert "meta" in body
+    assert "data" in body
+    assert "input_hash" in body["meta"]["response"]
+    assert "advisory_disclaimer" in body["meta"]["response"]
+    assert body["meta"]["response"]["input_hash"].startswith("hmac-sha256:")
+    assert body["meta"]["response"]["advisory_disclaimer"] is not None
+    data = body["data"]
+    assert "overall_sensitivity" in data
+    assert "risk_summary" in data
+    assert "categories" in data
+    assert "regulatory_flags" in data
+    assert "recommended_handling" in data
+    assert "entity_breakdown" in data
+    assert "reasoning" in data
+    assert isinstance(data["entity_breakdown"], list)
+    # advisory_disclaimer has moved to meta — must not appear in data
+    assert "advisory_disclaimer" not in data
 
 
 async def test_assess_with_context(assess_client: AsyncClient) -> None:
@@ -39,18 +47,17 @@ async def test_assess_with_context(assess_client: AsyncClient) -> None:
 
 
 async def test_assess_with_pre_computed_detections(assess_client: AsyncClient) -> None:
-    """Pre-computed detections should skip re-detection."""
+    """Pre-computed detections (body['data']) should skip re-detection."""
     text = "jane@example.com"
     detect_resp = await assess_client.post("/detect", json={"text": text})
     assert detect_resp.status_code == 200
 
     assess_resp = await assess_client.post(
         "/assess",
-        json={"text": text, "detections": detect_resp.json()},
+        json={"text": text, "detections": detect_resp.json()["data"]},
     )
     assert assess_resp.status_code == 200
-    body = assess_resp.json()
-    assert "overall_sensitivity" in body
+    assert "overall_sensitivity" in assess_resp.json()["data"]
 
 
 async def test_assess_no_assessor_returns_503(detect_client: AsyncClient) -> None:
@@ -70,7 +77,7 @@ async def test_assess_entity_breakdown_populated(assess_client: AsyncClient) -> 
     text = "My name is Jane Smith and my TFN is 123 456 782"
     resp = await assess_client.post("/assess", json={"text": text})
     assert resp.status_code == 200
-    breakdown = resp.json()["entity_breakdown"]
+    breakdown = resp.json()["data"]["entity_breakdown"]
     types = {b["entity_type"] for b in breakdown}
     # TFN and PERSON should both appear
     assert "AU_TFN" in types
@@ -84,4 +91,4 @@ async def test_assess_clean_text_low_sensitivity(assess_client: AsyncClient) -> 
     )
     assert resp.status_code == 200
     # breakdown should be empty — no PII entities
-    assert resp.json()["entity_breakdown"] == []
+    assert resp.json()["data"]["entity_breakdown"] == []
