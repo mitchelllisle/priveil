@@ -21,6 +21,7 @@ async def test_assess_response_shape(assess_client: AsyncClient) -> None:
     assert "categories" in body
     assert "regulatory_flags" in body
     assert "recommended_handling" in body
+    assert "advisory_disclaimer" in body
     assert "entity_breakdown" in body
     assert "reasoning" in body
     assert isinstance(body["entity_breakdown"], list)

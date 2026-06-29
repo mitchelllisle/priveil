@@ -6,6 +6,7 @@ Import this module to trigger registration; it is safe to import multiple times.
 
 from __future__ import annotations
 
+import logging
 from typing import Literal, cast
 
 from mcp.server.fastmcp import Context
@@ -16,6 +17,8 @@ from priveil.domain.pseudonymisation import OperatorType, PseudonymisationReques
 from priveil.judge.assessor import assess as _assess
 from priveil.judge.refiner import refine as _refine
 from priveil.mcp.server import get_state, mcp
+
+logger = logging.getLogger(__name__)
 
 
 @mcp.tool()
@@ -29,17 +32,24 @@ async def detect(
     Args:
         text: The text to scan for PII.
         mode: 'fast' for raw detector output; 'judge' adds an LLM pass to
-            remove false positives. No-ops to 'fast' when PRIVEIL_JUDGE_MODEL
-            is unset — no configuration change required.
+            remove false positives. Falls back to 'fast' when PRIVEIL_JUDGE_MODEL
+            is unset (surfaced via mode_used).
 
     Returns:
         Detected entities with type, offsets, confidence, PII flag, sensitivity,
-        and a SHA-256 audit hash of the input.
+        and an HMAC-SHA-256 audit hash of the input.
     """
     state = get_state(ctx)
     result = await state.analyser.analyse(DetectionRequest(text=text, mode=mode))
+    mode_used = mode
     if mode == "judge" and state.refiner is not None:
         result = await _refine(result, text, state.refiner)
+    elif mode == "judge":
+        mode_used = "fast"
+        logger.warning(
+            "mode='judge' requested for MCP detect but PRIVEIL_JUDGE_MODEL is unset; falling back to mode='fast'."
+        )
+    result = result.model_copy(update={"mode_used": mode_used})
     return result
 
 
@@ -66,20 +76,26 @@ async def anonymise(
     """
     state = get_state(ctx)
     detections = await state.analyser.analyse(DetectionRequest(text=text, mode=mode))
+    mode_used = mode
     if mode == "judge" and state.refiner is not None:
         detections = await _refine(detections, text, state.refiner)
+    elif mode == "judge":
+        mode_used = "fast"
+        logger.warning(
+            "mode='judge' requested for MCP anonymise but PRIVEIL_JUDGE_MODEL is unset; falling back to mode='fast'."
+        )
     _VALID_OPERATORS = {"replace", "mask", "redact", "hash"}
     if invalid := {v for v in (operator_overrides or {}).values() if v not in _VALID_OPERATORS}:
         raise ValueError(f"Invalid operator(s): {invalid}. Must be one of {_VALID_OPERATORS}.")
     overrides = {k: cast(OperatorType, v) for k, v in (operator_overrides or {}).items()}
-    return await state.pseudonymiser.pseudonymise(
+    return (await state.pseudonymiser.pseudonymise(
         PseudonymisationRequest(
             text=text,
             detections=detections,
             operator_overrides=overrides,
             mode="fast",  # refinement already applied above
         )
-    )
+    )).model_copy(update={"mode_requested": mode, "mode_used": mode_used})
 
 
 @mcp.tool()

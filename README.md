@@ -9,10 +9,13 @@
 ▀▀▀▀▀▀▀▀        ▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀    ▀▀▀▀▀▀▀▀    ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 ```
 
-A pseudonymisation service for Australian financial services — useful for reducing obvious PII exposure in systems that handle financial text, but **not a substitute for true anonymisation**.
+A pseudonymisation service for reducing obvious PII exposure in text workflows, with strong support for Australian financial identifiers — **not a substitute for true anonymisation**.
 
 > [!IMPORTANT]
 > **Read this before integrating:** Priveil replaces known PII patterns with consistent placeholders. It cannot enumerate all possible identifying information, does not account for auxiliary data an attacker might possess, and makes no mathematical guarantee about re-identification risk. See [**On anonymisation and its limits**](#on-anonymisation-and-its-limits) below.
+
+> [!CAUTION]
+> **Service hardening is your responsibility:** this API ships with **no built-in authentication, no rate limiting, and no TLS termination**. Deploy it only behind your own trusted gateway/load balancer (authn/authz, traffic limits, TLS, and network controls).
 
 ---
 
@@ -50,7 +53,7 @@ A pseudonymisation service for Australian financial services — useful for redu
 
 ### `POST /detect`
 
-Returns detected entities with type, character offsets, confidence score, PII classification, and sensitivity tier. Every response includes a SHA-256 audit hash of the input.
+Returns detected entities with type, character offsets, confidence score, PII classification, and sensitivity tier. Every response includes an HMAC-SHA-256 audit hash of the input.
 
 ```bash
 curl -X POST http://localhost:8000/detect \
@@ -69,7 +72,9 @@ curl -X POST http://localhost:8000/detect \
     { "text": "062-000",     "entity_type": "AU_BSB",        "is_pii": true, "sensitivity": "high",     "score": 0.85 },
     { "text": "jane@westpac.com.au", "entity_type": "EMAIL_ADDRESS", "is_pii": true, "sensitivity": "medium", "score": 1.0 }
   ],
-  "input_hash": "sha256:..."
+  "input_hash": "hmac-sha256:...",
+  "mode_requested": "judge",
+  "mode_used": "judge"
 }
 ```
 
@@ -77,7 +82,7 @@ curl -X POST http://localhost:8000/detect \
 
 | Value | Behaviour |
 |-------|-----------|
-| `"judge"` | Runs an LLM pass to remove false positives before returning. Requires `PRIVEIL_JUDGE_MODEL`. Degrades silently to `"fast"` when unconfigured. |
+| `"judge"` | Runs an LLM pass to remove false positives before returning. Requires `PRIVEIL_JUDGE_MODEL`. When unconfigured, the response surfaces fallback with `mode_used: "fast"` and the service logs a warning. |
 | `"fast"` | Returns raw detector output immediately. No LLM involvement. |
 
 ### `POST /anonymise`
@@ -99,7 +104,9 @@ curl -X POST http://localhost:8000/anonymise \
   "entity_map": {
     "Jane Smith":  "<PERSON>",
     "123 456 782": "***-***-***"
-  }
+  },
+  "mode_requested": "judge",
+  "mode_used": "judge"
 }
 ```
 
@@ -150,6 +157,7 @@ curl -X POST http://localhost:8000/assess \
   "categories": ["identity", "financial"],
   "regulatory_flags": ["Privacy Act s16B", "ATO data standards"],
   "recommended_handling": "Encrypt at rest, restrict to need-to-know, purge after 90 days",
+  "advisory_disclaimer": "Regulatory flags and recommendations are LLM-generated advisory hints only, not legal determinations.",
   "entity_breakdown": [
     { "entity_type": "AU_TFN", "sensitivity": "critical", "count": 1 },
     { "entity_type": "AU_BSB", "sensitivity": "high",     "count": 1 }
@@ -167,10 +175,10 @@ Priveil ships purpose-built recognisers for Australian financial identifiers, ea
 | Entity type | Description | PII | Sensitivity | Validation |
 |-------------|-------------|-----|-------------|-----------|
 | `AU_TFN` | Tax File Number | ✅ | critical | ATO checksum (mod 11) |
-| `AU_MEDICARE` | Medicare card number | ✅ | critical | DVA checksum |
+| `AU_MEDICARE` | Medicare card number | ✅ | critical | Services Australia issuing checksum (first 8 digits) |
 | `AU_ABN` | Australian Business Number | ❌ | low | ATO mod-89 checksum |
 | `AU_ACN` | Australian Company Number | ❌ | low | ASIC complement-of-10 checksum |
-| `AU_BSB` | Bank State Branch code | ✅ | high | Format: `XXX-XXX` |
+| `AU_BSB` | Bank State Branch code | ✅ | high | Format: `XXX-XXX` (classified high in this domain because it commonly appears with account/customer data) |
 | `AU_ACCOUNT_NUMBER` | Bank account number | ✅ | high | Requires BSB context |
 | `AU_PHONE` | Australian mobile/landline | ✅ | medium | 04XX, +61 4XX, (0X) XXXX XXXX |
 
@@ -186,11 +194,19 @@ Copy `.env.example` to `.env` and set values.
 |----------|---------|-------------|
 | `PRIVEIL_JUDGE_MODEL` | _(unset)_ | LLM for `mode='judge'` and `/assess`. Format: `provider:model`, e.g. `anthropic:claude-sonnet-4-6` |
 | `PRIVEIL_JUDGE_TEMPERATURE` | `0.0` | Sampling temperature for the LLM judge |
+| `PRIVEIL_AUDIT_HASH_KEY` | _(unset)_ | Secret key for `input_hash` HMAC generation. Set this for stable audit hashes across restarts. |
 | `PRIVEIL_SPACY_MODEL` | `en_core_web_sm` | spaCy model. Use `en_core_web_lg` for higher recall in production |
 | `PRIVEIL_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool size for presidio (CPU-bound) |
 | `PRIVEIL_DEBUG` | `false` | Enable FastAPI debug mode |
 | `ANTHROPIC_API_KEY` | _(unset)_ | Required when using the `anthropic` provider |
 | `OPENAI_API_KEY` | _(unset)_ | Required when using the `openai` provider |
+
+> [!CAUTION]
+> **LLM egress and regulated data:** `mode="judge"` and `/assess` send raw, un-redacted text to your configured LLM provider. For regulated data, only use approved providers/configurations (private tenancy, data-retention disabled where available, regional controls, contractual safeguards) or run a self-hosted/local OpenAI-compatible endpoint via `PRIVEIL_JUDGE_BASE_URL`.
+
+### TFN scope note
+
+Priveil currently validates and detects modern 9-digit TFNs only. Legacy 8-digit TFNs are deliberately excluded.
 
 ---
 

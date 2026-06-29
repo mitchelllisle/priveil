@@ -1,22 +1,22 @@
 from presidio_analyzer import Pattern, PatternRecognizer
 
-# DVA/Services Australia weights for Medicare check digit (applied to digits 1–9).
-_MEDICARE_WEIGHTS: tuple[int, ...] = (1, 3, 7, 9, 1, 3, 7, 9, 1)
+# Services Australia Medicare issuing algorithm weights (applied to first 8 digits).
+_MEDICARE_WEIGHTS: tuple[int, ...] = (1, 3, 7, 9, 1, 3, 7, 9)
 
 
 def _medicare_checksum(digits: list[int]) -> bool:
     """Validate a Medicare card number using the Services Australia algorithm.
 
     Args:
-        digits: At least 10 integers (11th digit is the IRN suffix, not checked here).
+        digits: At least 9 integers (10th and 11th digits are issue/IRN suffixes).
 
     Returns:
-        True if sum(digits[0:9] * weights) mod 10 == digits[9].
+        True if sum(first 8 digits * weights) mod 10 == 9th digit.
     """
-    if len(digits) < 10:
+    if len(digits) < 9:
         return False
-    weighted_sum = sum(d * w for d, w in zip(digits[:9], _MEDICARE_WEIGHTS))
-    return weighted_sum % 10 == digits[9]
+    weighted_sum = sum(d * w for d, w in zip(digits[:8], _MEDICARE_WEIGHTS))
+    return weighted_sum % 10 == digits[8]
 
 
 class AUMedicareRecogniser(PatternRecognizer):

@@ -1,4 +1,5 @@
 import importlib.metadata
+import logging
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
@@ -11,6 +12,8 @@ from priveil.engine.analyser import AsyncAnalyser, build_analyser_engine
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
 from priveil.recognisers.registry import build_recognisers
 from priveil.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 
 def _version() -> str:
@@ -30,7 +33,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         spacy_model=settings.spacy_model,
         extra_recognisers=build_recognisers(),
     )
-    app.state.analyser = AsyncAnalyser(engine, executor)
+    audit_hash_key = settings.audit_hash_key.get_secret_value().encode() if settings.audit_hash_key else None
+    if audit_hash_key is None:
+        logger.warning(
+            "PRIVEIL_AUDIT_HASH_KEY is unset; using an ephemeral process-local audit hash key. "
+            "Set PRIVEIL_AUDIT_HASH_KEY to keep hashes stable across restarts."
+        )
+    app.state.analyser = AsyncAnalyser(engine, executor, audit_hash_key=audit_hash_key)
     app.state.pseudonymiser = AsyncPseudonymiser(AnonymizerEngine(), executor)  # type: ignore[no-untyped-call]  # conduit: presidio untyped
 
     if settings.judge_model or settings.judge_base_url:
@@ -61,7 +70,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Priveil",
-        description="Pseudonymisation service for Australian financial services",
+        description="Pseudonymisation service for reducing PII exposure in text workflows.",
         version=_version(),
         lifespan=lifespan,
     )

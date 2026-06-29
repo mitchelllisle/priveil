@@ -7,6 +7,7 @@ This module is part of the optional ``mcp`` extra::
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
@@ -40,6 +41,8 @@ class _State:
     assessor: Agent[None, AssessmentDecision] | None
     executor: ThreadPoolExecutor
 
+logger = logging.getLogger(__name__)
+
 
 def _require_spacy_model(model_name: str) -> None:
     """Fail fast if the spaCy model is not installed.
@@ -71,6 +74,12 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
         spacy_model=settings.spacy_model,
         extra_recognisers=build_recognisers(),
     )
+    audit_hash_key = settings.audit_hash_key.get_secret_value().encode() if settings.audit_hash_key else None
+    if audit_hash_key is None:
+        logger.warning(
+            "PRIVEIL_AUDIT_HASH_KEY is unset; using an ephemeral process-local audit hash key. "
+            "Set PRIVEIL_AUDIT_HASH_KEY to keep hashes stable across restarts."
+        )
     refiner: Agent[None, RefinerDecision] | None = None
     assessor: Agent[None, AssessmentDecision] | None = None
     if settings.judge_model or settings.judge_base_url:
@@ -81,7 +90,7 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
         assessor = build_assessor_agent(settings)
 
     state = _State(
-        analyser=AsyncAnalyser(engine, executor),
+        analyser=AsyncAnalyser(engine, executor, audit_hash_key=audit_hash_key),
         pseudonymiser=AsyncPseudonymiser(AnonymizerEngine(), executor),  # type: ignore[no-untyped-call]  # conduit: presidio untyped
         refiner=refiner,
         assessor=assessor,

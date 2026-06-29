@@ -29,7 +29,8 @@ class PseudonymisationRequest(BaseModel, frozen=True):
         default="judge",
         description=(
             "'judge' runs an LLM pass on detections before pseudonymising (slower). "
-            "'fast' skips the LLM. No-ops to 'fast' when no judge model is configured."
+            "'fast' skips the LLM. Falls back to 'fast' when no judge model is configured "
+            "(surfaced via mode_used)."
         ),
     )
 
@@ -44,3 +45,5 @@ class PseudonymisationResult(BaseModel, frozen=True):
 
     anonymised_text: str
     entity_map: dict[str, str]
+    mode_requested: Literal["fast", "judge"] = "fast"
+    mode_used: Literal["fast", "judge"] = "fast"

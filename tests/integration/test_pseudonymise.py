@@ -35,6 +35,8 @@ async def test_pseudonymise_response_shape(pseudonymise_client: AsyncClient) -> 
     body = resp.json()
     assert "anonymised_text" in body
     assert "entity_map" in body
+    assert "mode_requested" in body
+    assert "mode_used" in body
     assert isinstance(body["entity_map"], dict)
 
 
@@ -75,3 +77,13 @@ async def test_pseudonymise_au_bsb_replaced(pseudonymise_client: AsyncClient) ->
 async def test_pseudonymise_empty_text_returns_422(pseudonymise_client: AsyncClient) -> None:
     resp = await pseudonymise_client.post("/pseudonymise", json={"text": ""})
     assert resp.status_code == 422
+
+
+async def test_pseudonymise_judge_mode_surfaces_fallback_when_unconfigured(
+    pseudonymise_client: AsyncClient,
+) -> None:
+    resp = await pseudonymise_client.post("/pseudonymise", json={"text": "Jane Smith", "mode": "judge"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["mode_requested"] == "judge"
+    assert body["mode_used"] == "fast"

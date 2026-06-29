@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
@@ -74,9 +75,15 @@ class AsyncAnalyser:
     so the event loop is never blocked.
     """
 
-    def __init__(self, engine: AnalyzerEngine, executor: ThreadPoolExecutor) -> None:
+    def __init__(
+        self,
+        engine: AnalyzerEngine,
+        executor: ThreadPoolExecutor,
+        audit_hash_key: bytes | None = None,
+    ) -> None:
         self._engine = engine
         self._executor = executor
+        self._audit_hash_key = audit_hash_key or secrets.token_bytes(32)
 
     async def analyse(self, request: DetectionRequest) -> DetectionResult:
         """Detect PII entities in text.
@@ -96,4 +103,10 @@ class AsyncAnalyser:
         )
         results = await loop.run_in_executor(self._executor, _run)
         entities = [e for r in results if (e := _to_entity(r, request.text)) is not None]
-        return DetectionResult.from_text(text=request.text, entities=entities)
+        return DetectionResult.from_text(
+            text=request.text,
+            entities=entities,
+            mode_requested=request.mode,
+            mode_used=request.mode,
+            hash_key=self._audit_hash_key,
+        )

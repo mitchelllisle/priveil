@@ -102,26 +102,38 @@ class TestACNValidateResult:
 
 class TestMedicareChecksum:
     def test_valid_medicare(self) -> None:
-        # Construct a valid number: pick digits 1-9, compute check digit
-        digits_1_9 = [2, 1, 2, 3, 4, 5, 6, 7, 0]
-        weights = [1, 3, 7, 9, 1, 3, 7, 9, 1]
-        check = sum(d * w for d, w in zip(digits_1_9, weights)) % 10
-        assert _medicare_checksum(digits_1_9 + [check]) is True
+        # Construct a valid number: first 8 digits + checksum + issue number
+        digits_1_8 = [2, 1, 2, 3, 4, 5, 6, 7]
+        weights = [1, 3, 7, 9, 1, 3, 7, 9]
+        check = sum(d * w for d, w in zip(digits_1_8, weights)) % 10
+        assert _medicare_checksum(digits_1_8 + [check, 9]) is True
 
     def test_wrong_check_digit(self) -> None:
-        digits = [2, 1, 2, 3, 4, 5, 6, 7, 0, 9]
+        digits = [2, 1, 2, 3, 4, 5, 6, 7, 1, 9]
         assert _medicare_checksum(digits) is False
 
+    def test_minimum_length_9_digits_supported(self) -> None:
+        digits = [2, 1, 2, 3, 4, 5, 6, 7]
+        checksum = sum(d * w for d, w in zip(digits, [1, 3, 7, 9, 1, 3, 7, 9])) % 10
+        assert _medicare_checksum(digits + [checksum]) is True
+
     def test_too_short(self) -> None:
-        assert _medicare_checksum([2, 1, 2, 3, 4, 5, 6, 7, 0]) is False
+        assert _medicare_checksum([2, 1, 2, 3, 4, 5, 6, 7]) is False
 
 
 class TestMedicareValidateResult:
     recogniser = AUMedicareRecogniser()
 
     def test_invalid_returns_false_not_none(self) -> None:
-        result = self.recogniser.validate_result("2123 45670 9")
+        result = self.recogniser.validate_result("2123 45671 9")
         assert result is False
+
+
+class TestTFNLegacyHandling:
+    recogniser = AUTFNRecogniser()
+
+    def test_legacy_8_digit_tfn_is_excluded(self) -> None:
+        assert self.recogniser.validate_result("12 345 678") is False
 
 
 # ── Cross-cutting: validate_result never returns None on failure ───────────────

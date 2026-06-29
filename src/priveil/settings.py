@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     spacy_model: str = "en_core_web_sm"
     executor_max_workers: int = 4
     # LLM judge — set PRIVEIL_JUDGE_MODEL to enable refinement and /assess.
-    # When unset: mode='judge' degrades silently to 'fast'; /assess returns 503.
+    # When unset: mode='judge' falls back to 'fast' (with surfaced mode_used); /assess returns 503.
     judge_model: str | None = None
     judge_temperature: float = 0.0
     # Custom OpenAI-compatible endpoint (e.g. Databricks Serving Endpoints).
@@ -29,3 +29,6 @@ class Settings(BaseSettings):
     # When unset, judge_model uses pydantic-ai's provider:model string (e.g. anthropic:...).
     judge_base_url: str | None = None
     judge_api_key: SecretStr | None = None
+    # Key used for HMAC audit hashes. Set this explicitly for stable hashes across
+    # restarts and environments where audit correlation matters.
+    audit_hash_key: SecretStr | None = None

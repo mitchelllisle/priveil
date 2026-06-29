@@ -114,7 +114,13 @@ def _apply_decision(decision: RefinerDecision, request: JudgementRequest) -> Jud
             )
         )
 
-    adjusted = DetectionResult.from_text(text=text, entities=kept + added)
+    adjusted_entities = tuple(sorted(kept + added, key=lambda e: e.start))
+    adjusted = DetectionResult(
+        entities=adjusted_entities,
+        input_hash=request.detections.input_hash,
+        mode_requested=request.detections.mode_requested,
+        mode_used=request.detections.mode_used,
+    )
     return JudgementResult(adjusted=adjusted, removed=removed, added=added, reasoning=decision.reasoning)
 
 

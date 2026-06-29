@@ -1,6 +1,6 @@
 # Domain: Priveil — Pseudonymisation Service
 
-> **One sentence:** Priveil detects known PII patterns in text and replaces them with consistent placeholders, reducing the surface area of obvious personal data exposure in Australian financial services systems — while making no claim of true anonymisation.
+> **One sentence:** Priveil detects known PII patterns in text and replaces them with consistent placeholders, reducing the surface area of obvious personal data exposure in text workflows (with strong Australian financial identifier support) — while making no claim of true anonymisation.
 
 ---
 
@@ -31,6 +31,10 @@ Priveil **does not produce anonymised data** in any mathematically rigorous sens
 
 **The LLM refiner does not change this picture.** Mode `judge` uses an LLM to remove false positives and surface missed entities. This improves operational precision but does not change the fundamental guarantee — the system still cannot enumerate all possible identifying information, and the LLM introduces its own uncertainties (hallucination, prompt sensitivity, non-determinism across versions).
 
+**LLM egress is explicit.** Mode `judge` and `/assess` send raw, un-redacted text to the configured LLM provider. For regulated workloads, run only on approved provider configurations (private tenancy, retention controls, region controls, contractual safeguards) or route through a self-hosted/local OpenAI-compatible endpoint.
+
+**Network security controls are out of scope for this service.** The API ships without built-in authentication, rate limiting, or TLS termination. Production deployment must place it behind a gateway/reverse proxy that enforces authn/authz, traffic controls, and TLS.
+
 ### What this means for callers
 
 If your use case requires data to be **truly anonymous** — where re-identification is mathematically infeasible regardless of what an attacker might know — this tool is not sufficient. You need differential privacy, applied to aggregations, not pseudonymisation applied to text. For an accessible introduction to why, see Desfontaines' [*What anonymization techniques can you trust?*](https://desfontain.es/blog/trustworthy-anonymization.html) and Katharine Jarmul's [*Probably Private*](https://probablyprivate.com/).
@@ -52,6 +56,7 @@ Not to be confused with: Sensitivity. An `AU_ABN` is an EntityType but is **not*
 **PII (Personally Identifiable Information)**
 Definition: A boolean classification on an Entity. True means the entity identifies or could be used to identify a natural person. False means it is a business or contextual identifier with no personal link (e.g. ABN, ACN).
 Not to be confused with: Sensitivity. PII is a binary flag; sensitivity is a four-tier scale. An entity can be PII at medium sensitivity (email) or critical sensitivity (TFN).
+Domain note: `AU_BSB` is classified as PII/high in this codebase even though a BSB alone identifies a branch, because in real financial documents it frequently co-occurs with account and customer data and materially increases identification risk.
 Limitation: The PII flag is assigned from a static classification map. It does not account for context — a name is flagged as PII whether or not the person is a public figure, whether or not combining it with other fields creates a unique identifier.
 
 **Sensitivity**
@@ -69,9 +74,10 @@ Limitation: Sensitivity is a per-type heuristic, not a property of the specific 
 **Detection**
 Definition: The act of running recognisers over input text and returning a `DetectionResult`. Detection is deterministic given the same text and model.
 Limitation: Detection finds known patterns. It does not find all possible identifying information. The set of recognisers represents known Australian financial entity types — it is not exhaustive.
+Scope note: TFN detection currently supports modern 9-digit TFNs only; legacy 8-digit TFNs are deliberately excluded.
 
 **DetectionResult**
-Definition: The output of a Detection: a sorted tuple of Entities plus a SHA-256 audit hash of the original input. Immutable (frozen Pydantic model).
+Definition: The output of a Detection: a sorted tuple of Entities plus an HMAC-SHA-256 audit hash of the original input. Immutable (frozen Pydantic model).
 
 **Recogniser**
 Definition: A presidio `EntityRecognizer` subclass — the atomic detection unit. Each recogniser is responsible for exactly one EntityType. Australian financial recognisers include checksum validation where the issuing authority publishes an algorithm (TFN, ABN, Medicare).
@@ -89,7 +95,7 @@ Note: Even `redact` (empty string) does not produce anonymous output — the str
 Definition: The output of the pseudonymisation operation: the modified text string plus an `entity_map` that maps original PII spans to their replacement labels, for audit purposes. The map is an approximation for `mask` and `hash` operators — the exact transformed value is not knowable before the engine runs. The map is sensitive data (its keys are the original PII values) and must be protected with the same access controls as the original text.
 
 **Mode**
-Definition: A request-level switch controlling the speed/accuracy tradeoff: `fast` returns raw detector output; `judge` runs an LLM refinement pass to remove false positives. Defaults to `judge`; degrades silently to `fast` when no judge model is configured.
+Definition: A request-level switch controlling the speed/accuracy tradeoff: `fast` returns raw detector output; `judge` runs an LLM refinement pass to remove false positives. Defaults to `judge`; if no judge model is configured, responses surface fallback via `mode_used: "fast"` and the service logs a warning.
 Not to be confused with: A global server setting. Mode is per-request.
 
 **Refiner**
@@ -102,7 +108,7 @@ Definition: An LLM-produced risk profile of a piece of text: overall sensitivity
 Definition: The output of an Assessment. `entity_breakdown` is computed from the DetectionResult (not from the LLM) so it is always grounded in the actual detected entities.
 
 **Input Hash**
-Definition: A SHA-256 hex digest of the original input text, included in every DetectionResult and AnonymisationResult. Used for audit — downstream systems can verify the text they processed matches what was detected without storing the text itself.
+Definition: An HMAC-SHA-256 hex digest of the original input text, included in every DetectionResult. Used for audit — downstream systems can verify the text they processed matches what was detected without storing the text itself. The HMAC key must be managed as a secret.
 
 ---
 
@@ -183,7 +189,7 @@ Consequences: Callers who need data that is safe to publish or share without pri
 **Decision: Mode (fast/judge) is per-request, not a server-side global**
 Context: Some callers need throughput (batch jobs); others need accuracy (interactive, compliance-sensitive).
 Decision: `mode` is a field on DetectionRequest and AnonymisationRequest. `judge` is the default. The LLM is only invoked when mode = `judge` and a judge model is configured.
-Consequences: Callers opt out explicitly by setting `mode: fast`. When PRIVEIL_JUDGE_MODEL is unset, judge silently degrades to fast — no config change required on the client side.
+Consequences: Callers opt out explicitly by setting `mode: fast`. When PRIVEIL_JUDGE_MODEL is unset, judge falls back to fast and this is surfaced via `mode_used` with a warning log.
 
 **Decision: Refiner is internal; Assessment is the only LLM-facing endpoint**
 Context: Exposing an endpoint that lets callers "judge" detector accuracy couples them to an internal implementation detail and reveals that AI is involved in routine detection.
@@ -191,7 +197,7 @@ Decision: The Refiner is invoked transparently inside `/detect` and `/anonymise`
 Consequences: The public API surface is stable regardless of whether the underlying LLM changes, is disabled, or is replaced. Assessment is explicitly an LLM feature — callers know what they are getting.
 
 **Decision: Checksum validation on AU financial identifiers**
-Context: TFN, ABN, Medicare, and ACN all have publicly published checksum algorithms from the issuing authority (ATO, ASIC, DVA). Without checksum validation, pattern-only recognisers produce unacceptably high false positive rates on nine-digit sequences.
+Context: TFN, ABN, Medicare, and ACN all have publicly published checksum algorithms from the issuing authority (ATO, ASIC, Services Australia). Without checksum validation, pattern-only recognisers produce unacceptably high false positive rates on nine-digit sequences.
 Decision: Each recogniser implements the authority's checksum. A failed checksum returns no match; the entity is dropped. A passing checksum boosts the score to 1.0.
 Consequences: Near-zero false positives on AU financial identifiers in structured financial text. Any TFN that passes is cryptographically consistent with the ATO's algorithm, though not guaranteed to be a real issued number. Checksum validation is a precision improvement, not an anonymisation technique.
 
