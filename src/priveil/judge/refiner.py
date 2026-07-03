@@ -111,7 +111,17 @@ class Refiner:
 
 
 def build_refiner(settings: "Settings") -> Refiner:
-    """Build the span-verdict refiner from settings."""
+    """Build the span-verdict refiner from settings.
+
+    The refiner uses a raw AsyncOpenAI client and only works with
+    OpenAI-compatible endpoints — either OpenAI directly (set OPENAI_API_KEY,
+    leave PRIVEIL_JUDGE_BASE_URL unset) or any OpenAI-compatible server such
+    as vLLM or Ollama (set PRIVEIL_JUDGE_BASE_URL).
+
+    Non-OpenAI provider prefixes (e.g. 'anthropic:', 'google:') are NOT
+    supported by the refiner; requests will fail-open. Use those providers for
+    /assess only (assessor path uses pydantic-ai which supports all providers).
+    """
     from priveil.judge.model import build_judge_client
 
     return Refiner(client=build_judge_client(settings), settings=settings)

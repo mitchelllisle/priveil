@@ -80,7 +80,7 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
         )
     refiner: Refiner | None = None
     assessor: Agent[None, AssessmentDecision] | None = None
-    if settings.judge_model or settings.judge_base_url:
+    if settings.judge_model:
         from priveil.judge.assessor import build_assessor_agent
         from priveil.judge.refiner import build_refiner
 

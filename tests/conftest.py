@@ -47,8 +47,13 @@ def pseudonymiser() -> Generator[AsyncPseudonymiser, None, None]:
 
 
 class _PassThroughRefiner(Refiner):
+    """Test double that bypasses real LLM calls.
+
+    Uses object.__init__ to avoid requiring a real AsyncOpenAI client and
+    Settings, while still satisfying isinstance checks against Refiner.
+    """
     def __init__(self) -> None:
-        pass
+        object.__init__(self)
 
     async def refine(self, text: str, entities: tuple[Entity, ...]) -> RefineResult:
         return RefineResult(entities=entities, judge_applied=True)

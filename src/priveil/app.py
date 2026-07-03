@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.analyser = AsyncAnalyser(engine, executor, audit_hash_key=audit_hash_key)
     app.state.pseudonymiser = AsyncPseudonymiser(AnonymizerEngine(), executor)  # type: ignore[no-untyped-call]  # conduit: presidio untyped
 
-    if settings.judge_model or settings.judge_base_url:
+    if settings.judge_model:
         from priveil.judge.assessor import build_assessor_agent
         from priveil.judge.refiner import build_refiner
 
