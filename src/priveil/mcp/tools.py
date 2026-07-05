@@ -11,12 +11,12 @@ from typing import Literal, cast
 
 from mcp.server.fastmcp import Context
 
+from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER
+from priveil.advisor.assessor import assess as _assess
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.assessment import AssessmentData, AssessmentRequest
 from priveil.domain.detection import DetectionData, DetectionRequest
 from priveil.domain.pseudonymisation import OperatorType, PseudonymisationData, PseudonymisationRequest
-from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER
-from priveil.advisor.assessor import assess as _assess
 from priveil.mcp.server import get_state, mcp
 
 logger = logging.getLogger(__name__)
@@ -96,7 +96,8 @@ async def anonymise(
     elif mode == "advisor":
         mode_used = "fast"
         logger.warning(
-            "mode='advisor' requested for MCP anonymise but PRIVEIL_ADVISOR_MODEL is unset; falling back to mode='fast'."
+            "mode='advisor' requested for MCP anonymise but PRIVEIL_ADVISOR_MODEL is unset;"
+            " falling back to mode='fast'."
         )
     _VALID_OPERATORS = {"replace", "mask", "redact", "hash"}
     if invalid := {v for v in (operator_overrides or {}).values() if v not in _VALID_OPERATORS}:

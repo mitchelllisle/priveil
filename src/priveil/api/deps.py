@@ -3,10 +3,10 @@ from typing import Annotated, cast
 from fastapi import Depends, HTTPException, Request
 from pydantic_ai import Agent
 
-from priveil.engine.analyser import AsyncAnalyser
-from priveil.engine.pseudonymiser import AsyncPseudonymiser
 from priveil.advisor.assessor import AssessmentDecision
 from priveil.advisor.span_advisor import SpanAdvisor
+from priveil.engine.analyser import AsyncAnalyser
+from priveil.engine.pseudonymiser import AsyncPseudonymiser
 
 
 def _get_analyser(request: Request) -> AsyncAnalyser:

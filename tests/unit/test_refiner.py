@@ -8,7 +8,7 @@ from typing import Any, cast
 
 import pytest
 
-from priveil.advisor.span_advisor import AdvisorResult, KeepDecision, SpanAdvisor
+from priveil.advisor.span_advisor import KeepDecision, SpanAdvisor
 from priveil.domain.entities import Entity, EntityType
 from priveil.settings import Settings
 
@@ -20,14 +20,6 @@ _META: dict[EntityType, tuple[bool, str, str]] = {
     EntityType.LOCATION: (True, "low", "advisor"),
     EntityType.DATE_TIME: (False, "low", "advisor"),
 }
-
-from __future__ import annotations
-
-import asyncio
-from types import SimpleNamespace
-from typing import Any, cast
-
-import pytest
 
 def _entity(entity_type: EntityType, text: str, start: int, score: float) -> Entity:
     is_pii, sensitivity, verification = _META[entity_type]
@@ -51,7 +43,7 @@ def _settings(**kwargs: object) -> Settings:
     )
 
 
-def _mock_agent(keep: list[int]) -> Any:  # conduit: Any — agent double avoids pydantic-ai test infrastructure for unit tests
+def _mock_agent(keep: list[int]) -> Any:  # conduit: Any — avoids pydantic-ai test infra
     """Minimal agent double: run() returns KeepDecision with the given keep list."""
     async def run(prompt: str, **kwargs: object) -> SimpleNamespace:
         return SimpleNamespace(output=KeepDecision(keep=keep))

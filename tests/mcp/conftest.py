@@ -14,27 +14,25 @@ from typing import Any
 import pytest
 from presidio_anonymizer import AnonymizerEngine
 
-from priveil.engine.analyser import AsyncAnalyser, build_analyser_engine
+from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
 from priveil.mcp.server import _State
-from priveil.recognisers.registry import build_recognisers
+from priveil.recognisers.registry import build_operator_configs, build_recognisers
 
 
 @pytest.fixture(scope="session")
 def engine_state() -> Generator[_State, None, None]:
-    """Real analyser + pseudonymiser, no judge model.
+    """Real analyser + pseudonymiser, no advisor model.
 
-    Session-scoped so spaCy loads once. Executor is shut down on teardown.
+    Session-scoped so recognisers load once. Executor is shut down on teardown.
     """
     executor = ThreadPoolExecutor(max_workers=2)
-    engine = build_analyser_engine(
-        spacy_model="en_core_web_sm",
-        extra_recognisers=build_recognisers(),
-    )
+    recognisers = build_recognisers()
+    operator_configs = build_operator_configs(recognisers)
     state = _State(
-        analyser=AsyncAnalyser(engine, executor),
-        pseudonymiser=AsyncPseudonymiser(AnonymizerEngine(), executor),  # type: ignore[no-untyped-call]
-        refiner=None,
+        analyser=AsyncAnalyser(recognisers, executor),
+        pseudonymiser=AsyncPseudonymiser(AnonymizerEngine(), executor, operator_configs=operator_configs),  # type: ignore[no-untyped-call]
+        advisor=None,
         assessor=None,
         executor=executor,
     )

@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # ── GLiNER2 model (optional) ──────────────────────────────────────────────
     gliner_model = None
     try:
-        from gliner2 import GLiNER2  # type: ignore[import-untyped]
+        from gliner2 import GLiNER2
         logger.info("Loading GLiNER2 model '%s'…", settings.gliner2_model)
         gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
         logger.info("GLiNER2 model loaded.")
@@ -58,8 +58,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # ── Pseudonymiser — operator configs from recognisers ─────────────────────
     if not hasattr(app.state, "pseudonymiser"):
         operator_configs = build_operator_configs(recognisers)
-        app.state.pseudonymiser = AsyncPseudonymiser(  # type: ignore[no-untyped-call]  # conduit: presidio untyped
-            AnonymizerEngine(), executor, operator_configs=operator_configs
+        app.state.pseudonymiser = AsyncPseudonymiser(
+            AnonymizerEngine(),  # type: ignore[no-untyped-call]  # conduit: presidio untyped
+            executor, operator_configs=operator_configs
         )
 
     # ── LLM advisor (optional) ────────────────────────────────────────────────

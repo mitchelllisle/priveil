@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter
 
-from priveil.api.deps import AnalyserDep, AdvisorDep
+from priveil.api.deps import AdvisorDep, AnalyserDep
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.detection import DetectionData, DetectionRequest
 

@@ -10,11 +10,11 @@ from hypothesis import strategies as st
 
 from priveil.domain.entities import EntityType
 from priveil.engine.pseudonymiser import _build_operators
-from priveil.recognisers.registry import build_operator_configs, build_recognisers
 from priveil.recognisers.au_abn import _abn_checksum
 from priveil.recognisers.au_acn import _acn_checksum
 from priveil.recognisers.au_medicare import _medicare_checksum
 from priveil.recognisers.au_tfn import _tfn_checksum
+from priveil.recognisers.registry import build_operator_configs, build_recognisers
 
 # ── TFN ───────────────────────────────────────────────────────────────────────
 

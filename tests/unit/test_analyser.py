@@ -8,10 +8,9 @@ No mocks.
 from priveil.domain.detection import DetectionRequest
 from priveil.domain.entities import EntityType
 from priveil.engine.analyser import AsyncAnalyser, _to_entity
+from priveil.recognisers.au_tfn import AUTFNRecogniser
 from priveil.recognisers.base import Span
 from priveil.recognisers.email import EmailRecogniser
-from priveil.recognisers.au_tfn import AUTFNRecogniser
-
 
 # ── _to_entity ────────────────────────────────────────────────────────────────
 

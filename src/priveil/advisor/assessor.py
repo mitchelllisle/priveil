@@ -6,7 +6,6 @@ Wraps the pydantic-ai Agent that produces risk and sensitivity assessments.
 from __future__ import annotations
 
 import json
-from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -69,7 +68,6 @@ Detected entities:
 
 def _entity_breakdown(detections: DetectionResult) -> list[EntityBreakdown]:
     """Compute entity_breakdown from detections. Pure function — no LLM."""
-    from collections import defaultdict
     # Only PII entities appear in the breakdown; sensitivity comes from the entity itself.
     type_info: dict[str, tuple[str, int]] = {}
     for entity in detections.entities:

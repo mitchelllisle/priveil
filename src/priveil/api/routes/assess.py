@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
+from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER, assess
 from priveil.api.deps import AnalyserDep, AssessorDep
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.assessment import AssessmentData, AssessmentRequest
 from priveil.domain.detection import DetectionRequest
-from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER, assess
 
 router = APIRouter()
 

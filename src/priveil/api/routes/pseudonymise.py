@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter
 
-from priveil.api.deps import AnalyserDep, PseudonymiserDep, AdvisorDep
+from priveil.api.deps import AdvisorDep, AnalyserDep, PseudonymiserDep
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.detection import DetectionData, DetectionRequest
 from priveil.domain.pseudonymisation import PseudonymisationData, PseudonymisationRequest
@@ -44,7 +44,8 @@ async def pseudonymise(
     elif request.mode == "advisor":
         mode_used = "fast"
         logger.warning(
-            "mode='advisor' requested for /pseudonymise but PRIVEIL_ADVISOR_MODEL is unset; falling back to mode='fast'."
+            "mode='advisor' requested for /pseudonymise but PRIVEIL_ADVISOR_MODEL is unset;"
+            " falling back to mode='fast'."
         )
 
     result = await pseudonymiser.pseudonymise(

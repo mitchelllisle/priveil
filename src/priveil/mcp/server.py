@@ -46,14 +46,14 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:  # type: ignore[type-arg]  # conduit: FastMCP not generic at runtime
+async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
     settings = Settings()
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
 
     # GLiNER2 model (optional — NER recognisers skipped if not installed)
     gliner_model = None
     try:
-        from gliner2 import GLiNER2  # type: ignore[import-untyped]  # conduit: gliner2 ships no stubs
+        from gliner2 import GLiNER2
         gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
         logger.info("GLiNER2 model loaded for MCP server.")
     except ImportError:
@@ -71,8 +71,9 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:  # type: ignore[t
     analyser = AsyncAnalyser(recognisers, executor, audit_hash_key=audit_hash_key)
 
     operator_configs = build_operator_configs(recognisers)
-    pseudonymiser = AsyncPseudonymiser(  # type: ignore[no-untyped-call]  # conduit: presidio untyped
-        AnonymizerEngine(), executor, operator_configs=operator_configs
+    pseudonymiser = AsyncPseudonymiser(
+        AnonymizerEngine(),  # type: ignore[no-untyped-call]  # conduit: presidio untyped
+        executor, operator_configs=operator_configs
     )
 
     advisor: SpanAdvisor | None = None
