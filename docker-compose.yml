@@ -29,4 +29,3 @@ services:
     build:
       context: .
       target: test
-    command: ["pytest", "tests/", "-v"]
