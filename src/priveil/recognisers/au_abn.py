@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from priveil.domain.entities import EntityType, Sensitivity
 from priveil.recognisers.base import RegexRecogniser
@@ -38,7 +38,7 @@ class AUABNRecogniser(RegexRecogniser):
     entity_type: ClassVar[EntityType] = EntityType.AU_ABN
     is_pii: ClassVar[bool] = False
     sensitivity: ClassVar[Sensitivity] = "low"
-    verification: ClassVar = "trust"
+    verification: ClassVar[Literal["trust", "advisor"]] = "trust"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "** *** *** ***"}
 

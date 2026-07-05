@@ -81,7 +81,7 @@ class RegexRecogniser(BaseRecogniser, ABC):
                 window_end = min(len(text), match.end() + self._CONTEXT_WINDOW)
                 window = text_lower[window_start:window_end]
 
-                if any(cw in window for cw in self.context_words):
+                if any(re.search(r"\b" + re.escape(cw) + r"\b", window) for cw in self.context_words):
                     score = min(1.0, score + self._CONTEXT_BOOST)
 
                 spans.append(Span(

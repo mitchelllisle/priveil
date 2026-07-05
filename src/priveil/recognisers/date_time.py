@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from priveil.domain.entities import EntityType, Sensitivity
 from priveil.recognisers.base import GLiNERRecogniser
@@ -19,7 +19,7 @@ class DateTimeRecogniser(GLiNERRecogniser):
     entity_type: ClassVar[EntityType] = EntityType.DATE_TIME
     is_pii: ClassVar[bool] = False
     sensitivity: ClassVar[Sensitivity] = "low"
-    verification: ClassVar = "advisor"
+    verification: ClassVar[Literal["trust", "advisor"]] = "advisor"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<DATE>"}
 
