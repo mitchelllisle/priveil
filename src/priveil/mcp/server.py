@@ -44,6 +44,7 @@ class _State:
 logger = logging.getLogger(__name__)
 
 
+
 @asynccontextmanager
 async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:  # type: ignore[type-arg]  # conduit: FastMCP not generic at runtime
     settings = Settings()

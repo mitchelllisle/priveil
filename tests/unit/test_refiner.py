@@ -21,6 +21,13 @@ _META: dict[EntityType, tuple[bool, str, str]] = {
     EntityType.DATE_TIME: (False, "low", "advisor"),
 }
 
+from __future__ import annotations
+
+import asyncio
+from types import SimpleNamespace
+from typing import Any, cast
+
+import pytest
 
 def _entity(entity_type: EntityType, text: str, start: int, score: float) -> Entity:
     is_pii, sensitivity, verification = _META[entity_type]

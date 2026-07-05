@@ -97,3 +97,4 @@ def test_api_key_without_base_url_uses_builtin_path() -> None:
     assert result == "anthropic:claude-sonnet-4-6"
 
 
+

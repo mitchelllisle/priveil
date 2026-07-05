@@ -81,6 +81,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup TFN 123 456 782", mode="fast"))
             await app.state.advisor.advise("Warmup TFN 123 456 782", warmup.entities)
 
+    await app.state.analyser.analyse(DetectionRequest(text="Warmup: Jane Smith, TFN 123 456 782", mode="fast"))
+    if app.state.refiner is not None:
+        with suppress(Exception):
+            warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup Jane Smith", mode="fast"))
+            await app.state.refiner.refine("Warmup Jane Smith", warmup.entities)
+
     yield
     executor.shutdown(wait=True)
 
