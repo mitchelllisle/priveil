@@ -84,8 +84,8 @@ async def test_pseudonymise_empty_text_returns_422(pseudonymise_client: AsyncCli
 async def test_pseudonymise_judge_mode_surfaces_fallback_when_unconfigured(
     pseudonymise_client: AsyncClient,
 ) -> None:
-    resp = await pseudonymise_client.post("/pseudonymise", json={"text": "Jane Smith", "mode": "judge"})
+    resp = await pseudonymise_client.post("/pseudonymise", json={"text": "Jane Smith", "mode": "advisor"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["meta"]["request"]["mode"] == "judge"
+    assert body["meta"]["request"]["mode"] == "advisor"
     assert body["meta"]["response"]["mode"] == "fast"

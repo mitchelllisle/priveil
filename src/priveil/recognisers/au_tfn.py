@@ -1,4 +1,12 @@
-from presidio_analyzer import Pattern, PatternRecognizer
+"""Australian Tax File Number (TFN) recogniser."""
+
+from __future__ import annotations
+
+import re
+from typing import ClassVar
+
+from priveil.domain.entities import EntityType, Sensitivity
+from priveil.recognisers.base import RegexRecogniser
 
 # ATO-published weights for the 9-digit TFN checksum (mod 11).
 _TFN_WEIGHTS: tuple[int, ...] = (1, 4, 3, 7, 5, 8, 6, 9, 10)
@@ -18,31 +26,37 @@ def _tfn_checksum(digits: list[int]) -> bool:
     return sum(d * w for d, w in zip(digits, _TFN_WEIGHTS)) % 11 == 0
 
 
-class AUTFNRecogniser(PatternRecognizer):
+class AUTFNRecogniser(RegexRecogniser):
     """Detect Australian Tax File Numbers (TFN).
 
     Two patterns:
-    - Spaced (XXX XXX XXX) — high base score, checksum-validated.
-    - Compact (9 digits) — low base score, requires context words to reach threshold.
+    - Spaced (XXX XXX XXX) — standard printed format.
+    - Compact (9 digits) — less specific; context words and checksum reduce FP rate.
 
-    validate_result returns False (not None) on checksum failure so presidio
-    correctly invalidates the match rather than keeping it at its original score.
+    Both patterns share the same base score (0.8); validation rejects any sequence
+    that fails the ATO mod-11 checksum.
     """
 
-    PATTERNS = [
-        Pattern("AU_TFN_spaced", r"\b\d{3}[ \t]\d{3}[ \t]\d{3}\b", 0.8),
-        Pattern("AU_TFN_compact", r"\b\d{9}\b", 0.3),
+    entity_type: ClassVar[EntityType] = EntityType.AU_TFN
+    is_pii: ClassVar[bool] = True
+    sensitivity: ClassVar[Sensitivity] = "critical"
+    verification: ClassVar = "trust"
+    default_operator: ClassVar[str] = "replace"
+    default_operator_params: ClassVar[dict[str, object]] = {"new_value": "***-***-***"}
+
+    patterns: ClassVar[list[re.Pattern[str]]] = [
+        re.compile(r"\b\d{3}[ \t]\d{3}[ \t]\d{3}\b"),
+        re.compile(r"\b\d{9}\b"),
     ]
-    CONTEXT = ["tfn", "tax file", "tax file number", "taxfile", "tax-file"]
+    context_words: ClassVar[list[str]] = [
+        "tfn",
+        "tax file",
+        "tax file number",
+        "taxfile",
+        "tax-file",
+    ]
 
-    def __init__(self) -> None:
-        super().__init__(
-            supported_entity="AU_TFN",
-            patterns=self.PATTERNS,
-            context=self.CONTEXT,
-        )
-
-    def validate_result(self, pattern_text: str) -> bool | None:
-        """Return True if checksum passes, False to invalidate — never None on failure."""
-        digits = [int(c) for c in pattern_text if c.isdigit()]
+    def _validate(self, text: str) -> bool | None:
+        """Return True if checksum passes, False to invalidate."""
+        digits = [int(c) for c in text if c.isdigit()]
         return _tfn_checksum(digits)

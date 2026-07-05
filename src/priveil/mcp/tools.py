@@ -15,8 +15,8 @@ from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.assessment import AssessmentData, AssessmentRequest
 from priveil.domain.detection import DetectionData, DetectionRequest
 from priveil.domain.pseudonymisation import OperatorType, PseudonymisationData, PseudonymisationRequest
-from priveil.judge.assessor import ASSESSMENT_ADVISORY_DISCLAIMER
-from priveil.judge.assessor import assess as _assess
+from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER
+from priveil.advisor.assessor import assess as _assess
 from priveil.mcp.server import get_state, mcp
 
 logger = logging.getLogger(__name__)
@@ -26,15 +26,15 @@ logger = logging.getLogger(__name__)
 async def detect(
     text: str,
     ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
-    mode: Literal["fast", "judge"] = "judge",
+    mode: Literal["fast", "advisor"] = "advisor",
 ) -> PriveilResponse[DetectionData]:
     """Detect PII entities in text.
 
     Args:
         text: The text to analyse for PII.
-        mode: 'judge' runs an LLM pass to remove false positives (slower, default).
+        mode: 'advisor' runs an LLM pass to remove false positives (slower, default).
             'fast' returns raw detector output. Falls back to 'fast' when
-            PRIVEIL_JUDGE_MODEL is unset (surfaced via meta.response.mode).
+            PRIVEIL_ADVISOR_MODEL is unset (surfaced via meta.response.mode).
 
     Returns:
         PriveilResponse with meta (request/response mode and input_hash) and
@@ -43,22 +43,22 @@ async def detect(
     state = get_state(ctx)
     result = await state.analyser.analyse(DetectionRequest(text=text, mode=mode))
     mode_used = mode
-    judge_applied = False
-    if mode == "judge" and state.refiner is not None:
-        refined = await state.refiner.refine(text, result.entities)
+    advisor_applied = False
+    if mode == "advisor" and state.advisor is not None:
+        refined = await state.advisor.advise(text, result.entities)
         result = result.model_copy(update={"entities": refined.entities})
-        judge_applied = refined.judge_applied
-    elif mode == "judge":
+        advisor_applied = refined.advisor_applied
+    elif mode == "advisor":
         mode_used = "fast"
         logger.warning(
-            "mode='judge' requested for MCP detect but PRIVEIL_JUDGE_MODEL is unset; falling back to mode='fast'."
+            "mode='advisor' requested for MCP detect but PRIVEIL_ADVISOR_MODEL is unset; falling back to mode='fast'."
         )
     return PriveilResponse(
         meta=Meta(
             request=RequestMeta(mode=mode),
             response=ResponseMeta(mode=mode_used, input_hash=result.input_hash),
         ),
-        data=DetectionData(entities=result.entities, judge_applied=judge_applied),
+        data=DetectionData(entities=result.entities, advisor_applied=advisor_applied),
     )
 
 
@@ -66,14 +66,14 @@ async def detect(
 async def anonymise(
     text: str,
     ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
-    mode: Literal["fast", "judge"] = "judge",
+    mode: Literal["fast", "advisor"] = "advisor",
     operator_overrides: dict[str, str] | None = None,
 ) -> PriveilResponse[PseudonymisationData]:
     """Replace detected PII with consistent placeholders.
 
     Args:
         text: The text to pseudonymise.
-        mode: 'fast' or 'judge' — see detect.
+        mode: 'fast' or 'advisor' — see detect.
         operator_overrides: Per-entity-type strategy overrides. Keys are entity
             type strings (e.g. 'PERSON', 'AU_TFN'); values are 'replace',
             'mask', 'redact', or 'hash'.
@@ -88,15 +88,15 @@ async def anonymise(
     detections = await state.analyser.analyse(DetectionRequest(text=text, mode=mode))
     input_hash = detections.input_hash
     mode_used = mode
-    judge_applied = False
-    if mode == "judge" and state.refiner is not None:
-        refined = await state.refiner.refine(text, detections.entities)
+    advisor_applied = False
+    if mode == "advisor" and state.advisor is not None:
+        refined = await state.advisor.advise(text, detections.entities)
         detections = detections.model_copy(update={"entities": refined.entities})
-        judge_applied = refined.judge_applied
-    elif mode == "judge":
+        advisor_applied = refined.advisor_applied
+    elif mode == "advisor":
         mode_used = "fast"
         logger.warning(
-            "mode='judge' requested for MCP anonymise but PRIVEIL_JUDGE_MODEL is unset; falling back to mode='fast'."
+            "mode='advisor' requested for MCP anonymise but PRIVEIL_ADVISOR_MODEL is unset; falling back to mode='fast'."
         )
     _VALID_OPERATORS = {"replace", "mask", "redact", "hash"}
     if invalid := {v for v in (operator_overrides or {}).values() if v not in _VALID_OPERATORS}:
@@ -115,7 +115,7 @@ async def anonymise(
             request=RequestMeta(mode=mode),
             response=ResponseMeta(mode=mode_used, input_hash=input_hash),
         ),
-        data=result.model_copy(update={"judge_applied": judge_applied}),
+        data=result.model_copy(update={"advisor_applied": advisor_applied}),
     )
 
 
@@ -138,11 +138,11 @@ async def assess(
         regulatory frameworks, recommended handling guidance, and a per-entity breakdown.
 
     Raises:
-        ValueError: If PRIVEIL_JUDGE_MODEL is not configured.
+        ValueError: If PRIVEIL_ADVISOR_MODEL is not configured.
     """
     state = get_state(ctx)
     if state.assessor is None:
-        raise ValueError("assess requires PRIVEIL_JUDGE_MODEL to be configured.")
+        raise ValueError("assess requires PRIVEIL_ADVISOR_MODEL to be configured.")
     detections = await state.analyser.analyse(DetectionRequest(text=text))
     data = await _assess(AssessmentRequest(text=text, context=context), detections, state.assessor)
     return PriveilResponse(

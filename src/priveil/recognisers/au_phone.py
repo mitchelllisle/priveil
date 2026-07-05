@@ -1,30 +1,39 @@
-from presidio_analyzer import Pattern, PatternRecognizer
+"""Australian mobile and landline phone number recogniser."""
+
+from __future__ import annotations
+
+import re
+from typing import ClassVar
+
+from priveil.domain.entities import EntityType, Sensitivity
+from priveil.recognisers.base import RegexRecogniser
 
 
-class AUPhoneRecogniser(PatternRecognizer):
+class AUPhoneRecogniser(RegexRecogniser):
     """Detect Australian mobile and landline phone numbers.
 
-    Supplements the standard presidio PHONE_NUMBER recogniser with AU-specific
-    patterns for local formats (04XX, +61 4XX, (0X) XXXX XXXX).
+    Patterns:
+    - Mobile: 04XX format, local or with +61 country code.
+    - Landline: (0X) XXXX XXXX format for state-based numbers.
     """
 
-    PATTERNS = [
-        Pattern(
-            "AU_PHONE_mobile",
-            r"\b(?:\+61\s?|0)4\d{2}[\s\-]?\d{3}[\s\-]?\d{3}\b",
-            0.75,
-        ),
-        Pattern(
-            "AU_PHONE_landline",
-            r"\b(?:\(0[2-9]\)\s?|0[2-9][\s\-]?)\d{4}[\s\-]?\d{4}\b",
-            0.65,
-        ),
-    ]
-    CONTEXT = ["phone", "mobile", "call", "contact", "tel", "telephone", "number"]
+    entity_type: ClassVar[EntityType] = EntityType.AU_PHONE
+    is_pii: ClassVar[bool] = True
+    sensitivity: ClassVar[Sensitivity] = "medium"
+    verification: ClassVar = "trust"
+    default_operator: ClassVar[str] = "replace"
+    default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<PHONE>"}
 
-    def __init__(self) -> None:
-        super().__init__(
-            supported_entity="AU_PHONE",
-            patterns=self.PATTERNS,
-            context=self.CONTEXT,
-        )
+    patterns: ClassVar[list[re.Pattern[str]]] = [
+        re.compile(r"\b(?:\+61\s?|0)4\d{2}[\s\-]?\d{3}[\s\-]?\d{3}\b"),
+        re.compile(r"\b(?:\(0[2-9]\)\s?|0[2-9][\s\-]?)\d{4}[\s\-]?\d{4}\b"),
+    ]
+    context_words: ClassVar[list[str]] = [
+        "phone",
+        "mobile",
+        "call",
+        "contact",
+        "tel",
+        "telephone",
+        "number",
+    ]

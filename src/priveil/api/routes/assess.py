@@ -4,7 +4,7 @@ from priveil.api.deps import AnalyserDep, AssessorDep
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.assessment import AssessmentData, AssessmentRequest
 from priveil.domain.detection import DetectionRequest
-from priveil.judge.assessor import ASSESSMENT_ADVISORY_DISCLAIMER, assess
+from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER, assess
 
 router = APIRouter()
 
@@ -19,7 +19,7 @@ async def assess_content(
 
     Returns an overall sensitivity tier, risk categories, applicable Australian
     regulatory frameworks, recommended handling guidance, and a per-entity-type
-    breakdown. Requires PRIVEIL_JUDGE_MODEL to be configured.
+    breakdown. Requires PRIVEIL_ADVISOR_MODEL to be configured.
 
     Pass ``body["data"]`` from a prior ``/detect`` response as ``detections``.
     """

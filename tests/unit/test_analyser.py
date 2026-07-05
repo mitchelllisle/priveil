@@ -1,51 +1,41 @@
-"""Unit tests for the async analyser engine.
+"""Unit tests for the async detection engine.
 
-_to_entity is a pure function — tested directly with real RecognizerResult objects.
-AsyncAnalyser.analyse is tested against a real (small) spaCy-backed engine.
+_to_entity is a pure function — tested directly with Span + BaseRecogniser.
+AsyncAnalyser.analyse is tested against the regex-only engine (no GLiNER2 in tests).
 No mocks.
 """
-
-from presidio_analyzer.recognizer_result import RecognizerResult
 
 from priveil.domain.detection import DetectionRequest
 from priveil.domain.entities import EntityType
 from priveil.engine.analyser import AsyncAnalyser, _to_entity
+from priveil.recognisers.base import Span
+from priveil.recognisers.email import EmailRecogniser
+from priveil.recognisers.au_tfn import AUTFNRecogniser
+
 
 # ── _to_entity ────────────────────────────────────────────────────────────────
 
-def _result(entity_type: str, start: int, end: int, score: float = 0.85) -> RecognizerResult:
-    return RecognizerResult(entity_type=entity_type, start=start, end=end, score=score)
+def test_to_entity_sets_fields_from_recogniser() -> None:
+    rec = EmailRecogniser()
+    span = Span(text="hello@example.com", start=0, end=17, score=0.85)
+    entity = _to_entity(span, rec)
+    assert entity.entity_type == EntityType.EMAIL_ADDRESS
+    assert entity.text == "hello@example.com"
+    assert entity.start == 0
+    assert entity.end == 17
+    assert entity.score == 0.85
+    assert entity.is_pii is True
+    assert entity.sensitivity == "medium"
+    assert entity.verification == "trust"
 
 
-def test_to_entity_known_type() -> None:
-    text = "hello@example.com is the address"
-    result = _to_entity(_result("EMAIL_ADDRESS", 0, 17), text)
-    assert result is not None
-    assert result.entity_type == EntityType.EMAIL_ADDRESS
-    assert result.text == "hello@example.com"
-    assert result.start == 0
-    assert result.end == 17
-    assert result.is_pii is True
-    assert result.sensitivity == "medium"
-
-
-def test_to_entity_unknown_type_returns_none() -> None:
-    result = _to_entity(_result("UK_NHS", 0, 10), "some text here")
-    assert result is None
-
-
-def test_to_entity_score_rounded_to_4dp() -> None:
-    result = _to_entity(_result("PERSON", 0, 4, score=0.123456789), "Jane is here")
-    assert result is not None
-    assert result.score == 0.1235
-
-
-def test_to_entity_credit_card_is_critical() -> None:
-    text = "4111111111111111 is the card"
-    result = _to_entity(_result("CREDIT_CARD", 0, 16), text)
-    assert result is not None
-    assert result.sensitivity == "critical"
-    assert result.is_pii is True
+def test_to_entity_critical_type() -> None:
+    rec = AUTFNRecogniser()
+    span = Span(text="123 456 782", start=5, end=16, score=0.95)
+    entity = _to_entity(span, rec)
+    assert entity.sensitivity == "critical"
+    assert entity.is_pii is True
+    assert entity.entity_type == EntityType.AU_TFN
 
 
 # ── AsyncAnalyser ─────────────────────────────────────────────────────────────
@@ -77,3 +67,11 @@ async def test_analyse_no_critical_pii_in_clean_text(analyser: AsyncAnalyser) ->
     result = await analyser.analyse(req)
     critical = [e for e in result.entities if e.sensitivity == "critical"]
     assert len(critical) == 0
+
+
+async def test_analyse_detects_tfn(analyser: AsyncAnalyser) -> None:
+    req = DetectionRequest(text="My TFN is 123 456 782.")
+    result = await analyser.analyse(req)
+    tfns = [e for e in result.entities if e.entity_type == EntityType.AU_TFN]
+    assert len(tfns) == 1
+    assert tfns[0].text == "123 456 782"

@@ -36,12 +36,12 @@ class TestTFNValidateResult:
 
     def test_valid_returns_true(self) -> None:
         # validate_result must return True (not None) so presidio keeps the match
-        assert self.recogniser.validate_result("123 456 782") is True
+        assert self.recogniser._validate("123 456 782") is True
 
     def test_invalid_returns_false_not_none(self) -> None:
         # The spike bug: returning None here means presidio keeps the match at
         # its original score. We must return False to invalidate.
-        result = self.recogniser.validate_result("123 456 789")
+        result = self.recogniser._validate("123 456 789")
         assert result is False, f"Expected False, got {result!r} — validate_result must not return None on failure"
 
 
@@ -63,10 +63,10 @@ class TestABNValidateResult:
     recogniser = AUABNRecogniser()
 
     def test_valid_returns_true(self) -> None:
-        assert self.recogniser.validate_result("51 824 753 556") is True
+        assert self.recogniser._validate("51 824 753 556") is True
 
     def test_invalid_returns_false_not_none(self) -> None:
-        result = self.recogniser.validate_result("51 824 753 999")
+        result = self.recogniser._validate("51 824 753 999")
         assert result is False
 
 
@@ -91,10 +91,10 @@ class TestACNValidateResult:
     recogniser = AUACNRecogniser()
 
     def test_valid_returns_true(self) -> None:
-        assert self.recogniser.validate_result("004 085 616") is True
+        assert self.recogniser._validate("004 085 616") is True
 
     def test_invalid_returns_false_not_none(self) -> None:
-        result = self.recogniser.validate_result("004 085 617")
+        result = self.recogniser._validate("004 085 617")
         assert result is False
 
 
@@ -125,7 +125,7 @@ class TestMedicareValidateResult:
     recogniser = AUMedicareRecogniser()
 
     def test_invalid_returns_false_not_none(self) -> None:
-        result = self.recogniser.validate_result("2123 45671 9")
+        result = self.recogniser._validate("2123 45671 9")
         assert result is False
 
 
@@ -133,7 +133,7 @@ class TestTFNLegacyHandling:
     recogniser = AUTFNRecogniser()
 
     def test_legacy_8_digit_tfn_is_excluded(self) -> None:
-        assert self.recogniser.validate_result("12 345 678") is False
+        assert self.recogniser._validate("12 345 678") is False
 
 
 # ── Cross-cutting: validate_result never returns None on failure ───────────────
@@ -151,7 +151,7 @@ def test_validate_result_returns_false_not_none_on_invalid(
     Returning None would tell presidio 'no validation performed' and the
     match would be kept at its original score — a critical correctness bug.
     """
-    result = recogniser.validate_result(invalid_text)  # type: ignore[union-attr]
+    result = recogniser._validate(invalid_text)  # type: ignore[union-attr]
     assert result is False, (
         f"{type(recogniser).__name__}.validate_result({invalid_text!r}) returned "
         f"{result!r}; expected False so presidio invalidates the match"

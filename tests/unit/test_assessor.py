@@ -1,17 +1,35 @@
-"""Unit tests for priveil.judge.assessor — pure functions only."""
+"""Unit tests for priveil.advisor.assessor — pure functions only."""
 
+from priveil.advisor.assessor import _build_assessment_prompt, _entity_breakdown
 from priveil.domain.assessment import AssessmentRequest
 from priveil.domain.detection import DetectionResult
-from priveil.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
-from priveil.judge.assessor import _build_assessment_prompt, _entity_breakdown
+from priveil.domain.entities import Entity, EntityType
+
+# Hardcoded classification map (replaces the removed ENTITY_CLASSIFICATION dict).
+_CLASSIFICATION: dict[EntityType, tuple[bool, str]] = {
+    EntityType.PERSON: (True, "high"),
+    EntityType.EMAIL_ADDRESS: (True, "medium"),
+    EntityType.PHONE_NUMBER: (True, "medium"),
+    EntityType.CREDIT_CARD: (True, "critical"),
+    EntityType.LOCATION: (True, "low"),
+    EntityType.DATE_TIME: (False, "low"),
+    EntityType.AU_TFN: (True, "critical"),
+    EntityType.AU_ABN: (False, "low"),
+    EntityType.AU_ACN: (False, "low"),
+    EntityType.AU_BSB: (True, "high"),
+    EntityType.AU_ACCOUNT_NUMBER: (True, "high"),
+    EntityType.AU_MEDICARE: (True, "critical"),
+    EntityType.AU_PHONE: (True, "medium"),
+}
 
 
 def _entity(entity_type: EntityType, text: str, start: int = 0) -> Entity:
-    is_pii, sensitivity = ENTITY_CLASSIFICATION[entity_type]
+    is_pii, sensitivity = _CLASSIFICATION[entity_type]
     return Entity(
         text=text, entity_type=entity_type,
         start=start, end=start + len(text),
         score=0.9, is_pii=is_pii, sensitivity=sensitivity,
+        verification="trust",
     )
 
 

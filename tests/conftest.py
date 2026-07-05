@@ -6,13 +6,13 @@ from httpx import ASGITransport, AsyncClient
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 
+from priveil.advisor.assessor import AssessmentDecision
+from priveil.advisor.span_advisor import AdvisorResult, SpanAdvisor
 from priveil.app import create_app
 from priveil.domain.entities import Entity
-from priveil.engine.analyser import AsyncAnalyser, build_analyser_engine
+from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
-from priveil.judge.assessor import AssessmentDecision
-from priveil.judge.refiner import Refiner, RefineResult
-from priveil.recognisers.registry import build_recognisers
+from priveil.recognisers.registry import build_operator_configs, build_recognisers
 from priveil.settings import Settings
 
 
@@ -21,18 +21,15 @@ def test_settings() -> Settings:
     # _env_file=None disables .env file loading. OS-level PRIVEIL_* environment
     # variables are still read by BaseSettings — keep them unset in your local
     # shell to avoid polluting the test suite.
-    return Settings(_env_file=None, spacy_model="en_core_web_sm")
+    return Settings(_env_file=None)
 
 
 @pytest.fixture(scope="session")
-def analyser(test_settings: Settings) -> Generator[AsyncAnalyser, None, None]:
-    """Build the analyser engine once per session — spaCy load is expensive."""
+def analyser() -> Generator[AsyncAnalyser, None, None]:
+    """Build the detection engine once per session — regex-only (no GLiNER2 in tests)."""
     executor = ThreadPoolExecutor(max_workers=2)
-    engine = build_analyser_engine(
-        spacy_model=test_settings.spacy_model,
-        extra_recognisers=build_recognisers(),
-    )
-    yield AsyncAnalyser(engine, executor)
+    recognisers = build_recognisers(gliner_model=None)
+    yield AsyncAnalyser(recognisers, executor)
     executor.shutdown(wait=True)
 
 
@@ -42,27 +39,29 @@ def pseudonymiser() -> Generator[AsyncPseudonymiser, None, None]:
     from presidio_anonymizer import AnonymizerEngine
 
     executor = ThreadPoolExecutor(max_workers=2)
-    yield AsyncPseudonymiser(AnonymizerEngine(), executor)
+    recognisers = build_recognisers(gliner_model=None)
+    operator_configs = build_operator_configs(recognisers)
+    yield AsyncPseudonymiser(AnonymizerEngine(), executor, operator_configs=operator_configs)
     executor.shutdown(wait=True)
 
 
-class _PassThroughRefiner(Refiner):
+class _PassThroughAdvisor(SpanAdvisor):
     """Test double that bypasses real LLM calls.
 
     Uses object.__init__ to avoid requiring a real AsyncOpenAI client and
-    Settings, while still satisfying isinstance checks against Refiner.
+    Settings, while still satisfying isinstance checks against SpanAdvisor.
     """
     def __init__(self) -> None:
         object.__init__(self)
 
-    async def refine(self, text: str, entities: tuple[Entity, ...]) -> RefineResult:
-        return RefineResult(entities=entities, judge_applied=True)
+    async def advise(self, text: str, entities: tuple[Entity, ...]) -> AdvisorResult:
+        return AdvisorResult(entities=entities, advisor_applied=True)
 
 
 @pytest.fixture(scope="session")
-def refiner_agent() -> Refiner:
-    """Pass-through refiner for tests that exercise judge-mode wiring."""
-    return _PassThroughRefiner()
+def advisor_agent() -> SpanAdvisor:
+    """Pass-through advisor for tests that exercise advisor-mode wiring."""
+    return _PassThroughAdvisor()
 
 
 @pytest.fixture(scope="session")
@@ -84,7 +83,7 @@ async def client(test_settings: Settings) -> AsyncGenerator[AsyncClient, None]:
 
 @pytest.fixture
 async def detect_client(test_settings: Settings, analyser: AsyncAnalyser) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser only — no refiner. Tests that refine=True is silently skipped."""
+    """Analyser only — no advisor. Tests that advisor mode is silently skipped."""
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -97,7 +96,7 @@ async def pseudonymise_client(
     analyser: AsyncAnalyser,
     pseudonymiser: AsyncPseudonymiser,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser + pseudonymiser, no refiner."""
+    """Analyser + pseudonymiser, no advisor."""
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
     app.state.pseudonymiser = pseudonymiser
@@ -106,17 +105,17 @@ async def pseudonymise_client(
 
 
 @pytest.fixture
-async def refined_client(
+async def advised_client(
     test_settings: Settings,
     analyser: AsyncAnalyser,
     pseudonymiser: AsyncPseudonymiser,
-    refiner_agent: Refiner,
+    advisor_agent: SpanAdvisor,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser + pseudonymiser + TestModel refiner — tests the refine path."""
+    """Analyser + pseudonymiser + pass-through advisor — tests the advisor path."""
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
     app.state.pseudonymiser = pseudonymiser
-    app.state.refiner = refiner_agent
+    app.state.advisor = advisor_agent
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 

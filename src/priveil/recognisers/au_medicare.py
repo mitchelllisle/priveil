@@ -1,4 +1,12 @@
-from presidio_analyzer import Pattern, PatternRecognizer
+"""Australian Medicare card number recogniser."""
+
+from __future__ import annotations
+
+import re
+from typing import ClassVar
+
+from priveil.domain.entities import EntityType, Sensitivity
+from priveil.recognisers.base import RegexRecogniser
 
 # Services Australia Medicare issuing algorithm weights (applied to first 8 digits).
 _MEDICARE_WEIGHTS: tuple[int, ...] = (1, 3, 7, 9, 1, 3, 7, 9)
@@ -19,27 +27,33 @@ def _medicare_checksum(digits: list[int]) -> bool:
     return weighted_sum % 10 == digits[8]
 
 
-class AUMedicareRecogniser(PatternRecognizer):
+class AUMedicareRecogniser(RegexRecogniser):
     """Detect Australian Medicare card numbers.
 
     Format: XXXX XXXXX X (first digit 2–6, 10 digits total, last is check digit).
     Critical PII — government health identifier.
     """
 
-    PATTERNS = [
-        Pattern("AU_MEDICARE_spaced", r"\b[2-6]\d{3}[ \t]\d{5}[ \t]\d\b", 0.8),
-        Pattern("AU_MEDICARE_compact", r"\b[2-6]\d{9}\b", 0.35),
+    entity_type: ClassVar[EntityType] = EntityType.AU_MEDICARE
+    is_pii: ClassVar[bool] = True
+    sensitivity: ClassVar[Sensitivity] = "critical"
+    verification: ClassVar = "trust"
+    default_operator: ClassVar[str] = "replace"
+    default_operator_params: ClassVar[dict[str, object]] = {"new_value": "**** *****-*"}
+
+    patterns: ClassVar[list[re.Pattern[str]]] = [
+        re.compile(r"\b[2-6]\d{3}[ \t]\d{5}[ \t]\d\b"),
+        re.compile(r"\b[2-6]\d{9}\b"),
     ]
-    CONTEXT = ["medicare", "medicare number", "medicare card", "health insurance", "dva"]
+    context_words: ClassVar[list[str]] = [
+        "medicare",
+        "medicare number",
+        "medicare card",
+        "health insurance",
+        "dva",
+    ]
 
-    def __init__(self) -> None:
-        super().__init__(
-            supported_entity="AU_MEDICARE",
-            patterns=self.PATTERNS,
-            context=self.CONTEXT,
-        )
-
-    def validate_result(self, pattern_text: str) -> bool | None:
+    def _validate(self, text: str) -> bool | None:
         """Return True if checksum passes, False to invalidate."""
-        digits = [int(c) for c in pattern_text if c.isdigit()]
+        digits = [int(c) for c in text if c.isdigit()]
         return _medicare_checksum(digits)
