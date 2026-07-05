@@ -59,7 +59,7 @@ def _slow_agent(keep: list[int], delay: float) -> Any:  # conduit: Any — same 
 
 
 @pytest.mark.asyncio
-async def test_advise_skips_llm_when_no_uncertain_entities() -> None:
+async def test_advise_skips_llm_for_trust_verified_entities() -> None:
     # EMAIL_ADDRESS is verification="trust" — bypasses advisor regardless of score
     entity = _entity(EntityType.EMAIL_ADDRESS, "a@b.com", 0, 0.7)
     advisor = SpanAdvisor(agent=_mock_agent([0]), settings=_settings())

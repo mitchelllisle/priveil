@@ -19,7 +19,7 @@ class DetectionRequest(BaseModel, frozen=True):
         description=(
             "'advisor' runs an LLM pass to remove false positives (slower). "
             "'fast' skips the LLM and returns raw detector output. "
-            "Falls back to 'fast' when no judge model is configured (surfaced via meta.response.mode)."
+            "Falls back to 'fast' when PRIVEIL_ADVISOR_MODEL is unset (surfaced via meta.response.mode)."
         ),
     )
 

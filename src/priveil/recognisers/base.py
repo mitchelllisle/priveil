@@ -1,6 +1,6 @@
 """Base classes for the Priveil recogniser stack.
 
-Three public classes are exported:
+Four public classes are exported:
 - Span          — a detected text span with position and score
 - BaseRecogniser — abstract interface every recogniser implements
 - RegexRecogniser — base for pattern-based recognisers with optional validation

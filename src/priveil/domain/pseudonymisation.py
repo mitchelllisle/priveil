@@ -30,7 +30,7 @@ class PseudonymisationRequest(BaseModel, frozen=True):
         default="advisor",
         description=(
             "'advisor' runs an LLM pass on detections before pseudonymising (slower). "
-            "'fast' skips the LLM. Falls back to 'fast' when no judge model is configured "
+            "'fast' skips the LLM. Falls back to 'fast' when PRIVEIL_ADVISOR_MODEL is unset "
             "(surfaced via meta.response.mode)."
         ),
     )

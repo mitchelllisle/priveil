@@ -52,11 +52,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             "PRIVEIL_AUDIT_HASH_KEY is unset; using an ephemeral process-local audit hash key. "
             "Set PRIVEIL_AUDIT_HASH_KEY to keep hashes stable across restarts."
         )
-    if not hasattr(app.state, "analyser"):
+    if getattr(app.state, "analyser", None) is None:
         app.state.analyser = AsyncAnalyser(recognisers, executor, audit_hash_key=audit_hash_key)
 
     # ── Pseudonymiser — operator configs from recognisers ─────────────────────
-    if not hasattr(app.state, "pseudonymiser"):
+    if getattr(app.state, "pseudonymiser", None) is None:
         operator_configs = build_operator_configs(recognisers)
         app.state.pseudonymiser = AsyncPseudonymiser(
             AnonymizerEngine(),  # type: ignore[no-untyped-call]  # conduit: presidio untyped
@@ -64,7 +64,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
 
     # ── LLM advisor (optional) ────────────────────────────────────────────────
-    if not hasattr(app.state, "advisor"):
+    if getattr(app.state, "advisor", None) is None:
         if settings.advisor_model:
             from priveil.advisor.assessor import build_assessor_agent
             from priveil.advisor.span_advisor import build_span_advisor
@@ -82,11 +82,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup TFN 123 456 782", mode="fast"))
             await app.state.advisor.advise("Warmup TFN 123 456 782", warmup.entities)
 
-    await app.state.analyser.analyse(DetectionRequest(text="Warmup: Jane Smith, TFN 123 456 782", mode="fast"))
-    if app.state.refiner is not None:
-        with suppress(Exception):
-            warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup Jane Smith", mode="fast"))
-            await app.state.refiner.refine("Warmup Jane Smith", warmup.entities)
 
     yield
     executor.shutdown(wait=True)
