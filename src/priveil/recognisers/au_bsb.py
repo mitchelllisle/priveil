@@ -31,6 +31,8 @@ class AUBSBRecogniser(RegexRecogniser):
         "bsb",
         "bank state branch",
         "branch number",
-        "routing",
         "bank code",
+        "account",
+        "transfer",
+        "payment",
     ]
