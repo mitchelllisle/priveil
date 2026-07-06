@@ -1,0 +1,8 @@
+{
+  "name": "advisor_ambiguous",
+  "description": "BSB codes embedded in text without banking context words — scores land at 0.8 (below the advisor threshold). Tests the advisor routing path end-to-end when mode=advisor.",
+  "mode": "advisor",
+  "text": "The system uses routing codes such as 062-000, 013-005, and 085-005 to direct traffic between nodes. Each code is a six-digit hyphenated identifier allocated by the internal registry. No funds transfer is implied by these codes in this context.",
+  "expected_entity_types": [],
+  "tags": ["medium", "advisor-path", "ambiguous"]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "customer_notification",
+  "description": "Realistic outbound customer email — email, phone, and a reference number. Medium length.",
+  "mode": "fast",
+  "text": "Dear valued customer,\n\nWe are writing to confirm your recent account update. Our records show your contact email as sarah.j.thompson@gmail.com and your registered mobile as 0412 887 342.\n\nIf you did not request this change, please call our fraud team immediately on 1800 123 456 or reply to this message.\n\nYour case reference is CAS-2024-00419. A member of our team will follow up within 48 hours.\n\nKind regards,\nCustomer Support Team",
+  "expected_entity_types": ["EMAIL_ADDRESS", "AU_PHONE"],
+  "tags": ["medium", "customer-facing"]
+}

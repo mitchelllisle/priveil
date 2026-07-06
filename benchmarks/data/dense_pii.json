@@ -1,0 +1,8 @@
+{
+  "name": "dense_pii",
+  "description": "Every AU entity type packed into a short passage — stress-tests overlap deduplication and multi-recogniser concurrency.",
+  "mode": "fast",
+  "text": "URGENT — Internal use only. Contact james.hargreaves@acme.com.au or call 0421 774 390. TFN: 123 456 782. Medicare: 2123 45670 1. Visa card: 4111111111111111. Transfer to BSB 062-000. ABN 51 824 753 556. ACN 004 085 616.",
+  "expected_entity_types": ["EMAIL_ADDRESS", "AU_PHONE", "AU_TFN", "AU_MEDICARE", "CREDIT_CARD", "AU_BSB", "AU_ABN", "AU_ACN"],
+  "tags": ["short", "pii-dense", "all-types"]
+}

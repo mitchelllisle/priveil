@@ -1,0 +1,8 @@
+{
+  "name": "au_loan_application",
+  "description": "Australian home loan application form — dense AU-specific PII across multiple fields. Tests the full AU recogniser stack.",
+  "mode": "fast",
+  "text": "HOME LOAN APPLICATION\n\nApplicant: James Kevin Hargreaves\nDate of Birth: 14 March 1982\nEmail: j.hargreaves@outlook.com.au\nMobile: 0421 774 390\nAlternate: (03) 9456 1234\n\nTax File Number: 123 456 782\nMedicare Card: 2123 45670 1\n\nEmployer ABN: 51 824 753 556\nEmployer ACN: 004 085 616\n\nBank Details\nBank: Commonwealth Bank of Australia\nBSB: 062-000\nAccount Number: 10234567\n\nCredit Card on File: 4111111111111111\n\nI declare the above information is true and correct.\nSignature: J.K. Hargreaves",
+  "expected_entity_types": ["EMAIL_ADDRESS", "AU_PHONE", "AU_TFN", "AU_MEDICARE", "AU_ABN", "AU_ACN", "AU_BSB", "CREDIT_CARD"],
+  "tags": ["medium", "au-specific", "pii-dense"]
+}

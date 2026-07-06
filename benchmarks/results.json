@@ -1,0 +1,2224 @@
+{
+  "machine_info": {
+    "node": "Mac.localdomain",
+    "processor": "arm",
+    "machine": "arm64",
+    "python_compiler": "Clang 13.0.0 (clang-1300.0.29.30)",
+    "python_implementation": "CPython",
+    "python_implementation_version": "3.12.0rc2",
+    "python_version": "3.12.0rc2",
+    "python_build": [
+      "v3.12.0rc2:40913a56ed",
+      "Sep  5 2023 20:28:55"
+    ],
+    "release": "25.5.0",
+    "system": "Darwin",
+    "cpu": {
+      "python_version": "3.12.0.candidate.2 (64 bit)",
+      "cpuinfo_version": [
+        9,
+        0,
+        0
+      ],
+      "cpuinfo_version_string": "9.0.0",
+      "arch": "ARM_8",
+      "bits": 64,
+      "count": 8,
+      "arch_string_raw": "arm64",
+      "brand_raw": "Apple M2"
+    }
+  },
+  "commit_info": {
+    "id": "e7793240dc0b6429d3a903adbdf964a98aafa8ae",
+    "time": "2026-07-06T09:40:10+10:00",
+    "author_time": "2026-07-06T09:40:10+10:00",
+    "dirty": true,
+    "project": "priveil",
+    "branch": "fix/review-fixes"
+  },
+  "benchmarks": [
+    {
+      "group": null,
+      "name": "test_detect_latency[advisor_ambiguous]",
+      "fullname": "benchmarks/test_throughput.py::TestScenarioThroughput::test_detect_latency[advisor_ambiguous]",
+      "params": {
+        "scenario": {
+          "name": "advisor_ambiguous",
+          "description": "BSB codes embedded in text without banking context words \u2014 scores land at 0.8 (below the advisor threshold). Tests the advisor routing path end-to-end when mode=advisor.",
+          "mode": "advisor",
+          "text": "The system uses routing codes such as 062-000, 013-005, and 085-005 to direct traffic between nodes. Each code is a six-digit hyphenated identifier allocated by the internal registry. No funds transfer is implied by these codes in this context.",
+          "expected_entity_types": [],
+          "tags": [
+            "medium",
+            "advisor-path",
+            "ambiguous"
+          ]
+        }
+      },
+      "param": "advisor_ambiguous",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0014548749968525954,
+        "max": 0.0028045420040143654,
+        "mean": 0.0018023135436810104,
+        "stddev": 0.00019435551653708693,
+        "rounds": 114,
+        "median": 0.0017834164973464794,
+        "iqr": 0.00021083400497445837,
+        "q1": 0.0016631659964332357,
+        "q3": 0.001874000001407694,
+        "iqr_outliers": 4,
+        "stddev_outliers": 18,
+        "outliers": "18;4",
+        "ld15iqr": 0.0014548749968525954,
+        "hd15iqr": 0.0022062499992898665,
+        "ops": 554.8424154643034,
+        "total": 0.20546374397963518,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_detect_latency[au_loan_application]",
+      "fullname": "benchmarks/test_throughput.py::TestScenarioThroughput::test_detect_latency[au_loan_application]",
+      "params": {
+        "scenario": {
+          "name": "au_loan_application",
+          "description": "Australian home loan application form \u2014 dense AU-specific PII across multiple fields. Tests the full AU recogniser stack.",
+          "mode": "fast",
+          "text": "HOME LOAN APPLICATION\n\nApplicant: James Kevin Hargreaves\nDate of Birth: 14 March 1982\nEmail: j.hargreaves@outlook.com.au\nMobile: 0421 774 390\nAlternate: (03) 9456 1234\n\nTax File Number: 123 456 782\nMedicare Card: 2123 45670 1\n\nEmployer ABN: 51 824 753 556\nEmployer ACN: 004 085 616\n\nBank Details\nBank: Commonwealth Bank of Australia\nBSB: 062-000\nAccount Number: 10234567\n\nCredit Card on File: 4111111111111111\n\nI declare the above information is true and correct.\nSignature: J.K. Hargreaves",
+          "expected_entity_types": [
+            "EMAIL_ADDRESS",
+            "AU_PHONE",
+            "AU_TFN",
+            "AU_MEDICARE",
+            "AU_ABN",
+            "AU_ACN",
+            "AU_BSB",
+            "CREDIT_CARD"
+          ],
+          "tags": [
+            "medium",
+            "au-specific",
+            "pii-dense"
+          ]
+        }
+      },
+      "param": "au_loan_application",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.001556000002892688,
+        "max": 0.025975917000323534,
+        "mean": 0.0025316726497612956,
+        "stddev": 0.0011602022722051657,
+        "rounds": 474,
+        "median": 0.0024904790006985422,
+        "iqr": 0.0005037919981987216,
+        "q1": 0.0021733750036219135,
+        "q3": 0.002677167001820635,
+        "iqr_outliers": 13,
+        "stddev_outliers": 4,
+        "outliers": "4;13",
+        "ld15iqr": 0.001556000002892688,
+        "hd15iqr": 0.003437832994677592,
+        "ops": 394.9957748661887,
+        "total": 1.200012835986854,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_detect_latency[bulk_customer_records]",
+      "fullname": "benchmarks/test_throughput.py::TestScenarioThroughput::test_detect_latency[bulk_customer_records]",
+      "params": {
+        "scenario": {
+          "name": "bulk_customer_records",
+          "description": "Simulated CRM export \u2014 40 customer rows, each with email, mobile and TFN. Tests engine throughput on a long document with repeated PII patterns.",
+          "mode": "fast",
+          "text": "CUSTOMER EXPORT \u2014 CONFIDENTIAL\nGenerated: 2024-12-01\n\nID,Name,Email,Mobile,TFN\n1001,Alice Nguyen,alice.nguyen@example.com,0412 001 001,123 456 782\n1002,Bob Tremblay,b.tremblay@example.net,0413 002 002,123 456 782\n1003,Carol Smith,carol.smith@corp.com.au,0414 003 003,123 456 782\n1004,David Okonkwo,d.okonkwo@example.org,0415 004 004,123 456 782\n1005,Eva Johansson,eva.j@example.com,0416 005 005,123 456 782\n1006,Frank Dupont,frank.dupont@example.com,0417 006 006,123 456 782\n1007,Grace Kim,g.kim@startup.io,0418 007 007,123 456 782\n1008,Henry Zhang,h.zhang@example.com,0419 008 008,123 456 782\n1009,Iris Petrov,iris.petrov@mail.com,0412 009 009,123 456 782\n1010,James O'Brien,james.obrien@example.com.au,0413 010 010,123 456 782\n1011,Kylie Anderson,kylie.a@example.com,0414 011 011,123 456 782\n1012,Liam Brown,liam.brown@example.net,0415 012 012,123 456 782\n1013,Mia Williams,mia.w@example.com,0416 013 013,123 456 782\n1014,Noah Jones,noah.jones@example.org,0417 014 014,123 456 782\n1015,Olivia Taylor,olivia.t@sample.com.au,0418 015 015,123 456 782\n1016,Paul Martin,paul.martin@example.com,0419 016 016,123 456 782\n1017,Quinn Wilson,q.wilson@example.com,0412 017 017,123 456 782\n1018,Ruby Moore,ruby.moore@example.net,0413 018 018,123 456 782\n1019,Sam Johnson,s.johnson@corp.com,0414 019 019,123 456 782\n1020,Tara Lee,tara.lee@example.com.au,0415 020 020,123 456 782\n1021,Uma Patel,uma.patel@example.com,0416 021 021,123 456 782\n1022,Victor Chen,v.chen@example.org,0417 022 022,123 456 782\n1023,Wendy Scott,wendy.scott@example.com,0418 023 023,123 456 782\n1024,Xander White,x.white@example.net,0419 024 024,123 456 782\n1025,Yara Harris,yara.harris@mail.com,0412 025 025,123 456 782\n1026,Zoe Clark,zoe.clark@example.com.au,0413 026 026,123 456 782\n1027,Aaron Lewis,a.lewis@example.com,0414 027 027,123 456 782\n1028,Beth Walker,beth.walker@example.com,0415 028 028,123 456 782\n1029,Carl Hall,carl.hall@example.net,0416 029 029,123 456 782\n1030,Diana Allen,diana.allen@corp.com,0417 030 030,123 456 782\n1031,Ethan Young,e.young@example.org,0418 031 031,123 456 782\n1032,Fiona King,fiona.king@example.com,0419 032 032,123 456 782\n1033,George Wright,g.wright@example.com.au,0412 033 033,123 456 782\n1034,Hannah Lopez,h.lopez@example.com,0413 034 034,123 456 782\n1035,Ivan Hill,ivan.hill@mail.com,0414 035 035,123 456 782\n1036,Julia Scott,julia.scott@example.com,0415 036 036,123 456 782\n1037,Karl Green,karl.green@example.net,0416 037 037,123 456 782\n1038,Lucy Adams,lucy.adams@example.com,0417 038 038,123 456 782\n1039,Mike Baker,mike.baker@corp.com.au,0418 039 039,123 456 782\n1040,Nancy Carter,nancy.carter@example.org,0419 040 040,123 456 782",
+          "expected_entity_types": [
+            "EMAIL_ADDRESS",
+            "AU_PHONE",
+            "AU_TFN"
+          ],
+          "tags": [
+            "long",
+            "pii-dense",
+            "throughput"
+          ]
+        }
+      },
+      "param": "bulk_customer_records",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0038090829984867014,
+        "max": 0.00990674999775365,
+        "mean": 0.004629671011466651,
+        "stddev": 0.0009691302084845136,
+        "rounds": 87,
+        "median": 0.004293334000976756,
+        "iqr": 0.0007690627535339445,
+        "q1": 0.004083906247615232,
+        "q3": 0.004852969001149177,
+        "iqr_outliers": 5,
+        "stddev_outliers": 7,
+        "outliers": "7;5",
+        "ld15iqr": 0.0038090829984867014,
+        "hd15iqr": 0.006219333998160437,
+        "ops": 215.9980693062694,
+        "total": 0.4027813779975986,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_detect_latency[customer_notification]",
+      "fullname": "benchmarks/test_throughput.py::TestScenarioThroughput::test_detect_latency[customer_notification]",
+      "params": {
+        "scenario": {
+          "name": "customer_notification",
+          "description": "Realistic outbound customer email \u2014 email, phone, and a reference number. Medium length.",
+          "mode": "fast",
+          "text": "Dear valued customer,\n\nWe are writing to confirm your recent account update. Our records show your contact email as sarah.j.thompson@gmail.com and your registered mobile as 0412 887 342.\n\nIf you did not request this change, please call our fraud team immediately on 1800 123 456 or reply to this message.\n\nYour case reference is CAS-2024-00419. A member of our team will follow up within 48 hours.\n\nKind regards,\nCustomer Support Team",
+          "expected_entity_types": [
+            "EMAIL_ADDRESS",
+            "AU_PHONE"
+          ],
+          "tags": [
+            "medium",
+            "customer-facing"
+          ]
+        }
+      },
+      "param": "customer_notification",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0008583329981775023,
+        "max": 0.004858791995502543,
+        "mean": 0.0017127828293952859,
+        "stddev": 0.0008016767298971827,
+        "rounds": 774,
+        "median": 0.0013693125001736917,
+        "iqr": 0.0012820830088458024,
+        "q1": 0.001073249994078651,
+        "q3": 0.0023553330029244535,
+        "iqr_outliers": 3,
+        "stddev_outliers": 192,
+        "outliers": "192;3",
+        "ld15iqr": 0.0008583329981775023,
+        "hd15iqr": 0.00474654199933866,
+        "ops": 583.8451803916433,
+        "total": 1.3256939099519514,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_detect_latency[dense_pii]",
+      "fullname": "benchmarks/test_throughput.py::TestScenarioThroughput::test_detect_latency[dense_pii]",
+      "params": {
+        "scenario": {
+          "name": "dense_pii",
+          "description": "Every AU entity type packed into a short passage \u2014 stress-tests overlap deduplication and multi-recogniser concurrency.",
+          "mode": "fast",
+          "text": "URGENT \u2014 Internal use only. Contact james.hargreaves@acme.com.au or call 0421 774 390. TFN: 123 456 782. Medicare: 2123 45670 1. Visa card: 4111111111111111. Transfer to BSB 062-000. ABN 51 824 753 556. ACN 004 085 616.",
+          "expected_entity_types": [
+            "EMAIL_ADDRESS",
+            "AU_PHONE",
+            "AU_TFN",
+            "AU_MEDICARE",
+            "CREDIT_CARD",
+            "AU_BSB",
+            "AU_ABN",
+            "AU_ACN"
+          ],
+          "tags": [
+            "short",
+            "pii-dense",
+            "all-types"
+          ]
+        }
+      },
+      "param": "dense_pii",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0019825420022243634,
+        "max": 0.025296291001723148,
+        "mean": 0.002609063237086313,
+        "stddev": 0.0012396144992612539,
+        "rounds": 367,
+        "median": 0.0024712919985176995,
+        "iqr": 0.0003858437466988107,
+        "q1": 0.00232130199947278,
+        "q3": 0.002707145746171591,
+        "iqr_outliers": 16,
+        "stddev_outliers": 1,
+        "outliers": "1;16",
+        "ld15iqr": 0.0019825420022243634,
+        "hd15iqr": 0.0033013749998644926,
+        "ops": 383.2793263825817,
+        "total": 0.9575262080106768,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_detect_latency[financial_report]",
+      "fullname": "benchmarks/test_throughput.py::TestScenarioThroughput::test_detect_latency[financial_report]",
+      "params": {
+        "scenario": {
+          "name": "financial_report",
+          "description": "Corporate financial report extract \u2014 numbers, percentages, dollar figures, but no personal identifiers. Tests false-positive rate on numeric-heavy clean text.",
+          "mode": "fast",
+          "text": "CONDENSED CONSOLIDATED STATEMENT OF FINANCIAL PERFORMANCE\nFor the half-year ended 31 December 2024 (unaudited)\n\nRevenue from continuing operations increased 8.3 percent to $412.7 million, up from $381.2 million in the prior corresponding period. Gross profit margin expanded 120 basis points to 41.5 percent, reflecting improved supply-chain efficiencies and favourable foreign exchange movements.\n\nOperating expenses were $147.3 million, representing 35.7 percent of revenue compared to 37.1 percent in the prior period. EBITDA was $123.6 million, yielding an EBITDA margin of 29.9 percent.\n\nNet profit after tax attributable to members of the parent entity was $74.2 million, an increase of 11.4 percent. Earnings per share (basic) were 34.1 cents, compared with 30.6 cents in the prior half.\n\nThe board has declared an interim dividend of 17.0 cents per share, fully franked, payable to shareholders registered as at the record date. The dividend reinvestment plan will operate at a 1.5 percent discount to the five-day volume-weighted average price.\n\nNet debt at period end was $203.4 million, representing a leverage ratio of 1.6 times EBITDA. The group maintains a $350.0 million revolving credit facility with a syndicate of four major Australian banks, of which $146.6 million was drawn at 31 December 2024.",
+          "expected_entity_types": [],
+          "tags": [
+            "long",
+            "clean",
+            "false-positive-test"
+          ]
+        }
+      },
+      "param": "financial_report",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0018097919964930043,
+        "max": 0.003730291995452717,
+        "mean": 0.0024506573477953565,
+        "stddev": 0.0003366880822974237,
+        "rounds": 371,
+        "median": 0.0024429580007563345,
+        "iqr": 0.00042153075082751457,
+        "q1": 0.0022433857502619503,
+        "q3": 0.002664916501089465,
+        "iqr_outliers": 4,
+        "stddev_outliers": 115,
+        "outliers": "115;4",
+        "ld15iqr": 0.0018097919964930043,
+        "hd15iqr": 0.00337362499703886,
+        "ops": 408.0537823452198,
+        "total": 0.9091938760320772,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_detect_latency[single_email]",
+      "fullname": "benchmarks/test_throughput.py::TestScenarioThroughput::test_detect_latency[single_email]",
+      "params": {
+        "scenario": {
+          "name": "single_email",
+          "description": "Minimal input \u2014 one email address. Baseline for the shortest possible detection round-trip.",
+          "mode": "fast",
+          "text": "Please direct all invoice enquiries to billing@acme.com.au and we will respond within two business days.",
+          "expected_entity_types": [
+            "EMAIL_ADDRESS"
+          ],
+          "tags": [
+            "short",
+            "baseline"
+          ]
+        }
+      },
+      "param": "single_email",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0015597919991705567,
+        "max": 0.0045263330030138604,
+        "mean": 0.002389501179721213,
+        "stddev": 0.0005418638547734678,
+        "rounds": 423,
+        "median": 0.0021504579999600537,
+        "iqr": 0.0007089897462719819,
+        "q1": 0.002030124749580864,
+        "q3": 0.0027391144958528457,
+        "iqr_outliers": 9,
+        "stddev_outliers": 97,
+        "outliers": "97;9",
+        "ld15iqr": 0.0015597919991705567,
+        "hd15iqr": 0.0038094159972388297,
+        "ops": 418.49738702228706,
+        "total": 1.0107589990220731,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_burst_single_email[5_concurrent]",
+      "fullname": "benchmarks/test_throughput.py::TestConcurrentThroughput::test_burst_single_email[5_concurrent]",
+      "params": {
+        "n": 5
+      },
+      "param": "5_concurrent",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.10578158299904317,
+        "max": 0.10909704199730186,
+        "mean": 0.10743127299873675,
+        "stddev": 0.001379143162350316,
+        "rounds": 9,
+        "median": 0.10750199999893084,
+        "iqr": 0.002982093752507353,
+        "q1": 0.10586087474803207,
+        "q3": 0.10884296850053943,
+        "iqr_outliers": 0,
+        "stddev_outliers": 5,
+        "outliers": "5;0",
+        "ld15iqr": 0.10578158299904317,
+        "hd15iqr": 0.10909704199730186,
+        "ops": 9.308276557532356,
+        "total": 0.9668814569886308,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_burst_single_email[10_concurrent]",
+      "fullname": "benchmarks/test_throughput.py::TestConcurrentThroughput::test_burst_single_email[10_concurrent]",
+      "params": {
+        "n": 10
+      },
+      "param": "10_concurrent",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.4380717919993913,
+        "max": 0.5312387079975451,
+        "mean": 0.48818681679840664,
+        "stddev": 0.03630192337565053,
+        "rounds": 5,
+        "median": 0.48659912499715574,
+        "iqr": 0.05451188525330508,
+        "q1": 0.4632920419971924,
+        "q3": 0.5178039272504975,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.4380717919993913,
+        "hd15iqr": 0.5312387079975451,
+        "ops": 2.048396158171848,
+        "total": 2.4409340839920333,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_burst_single_email[25_concurrent]",
+      "fullname": "benchmarks/test_throughput.py::TestConcurrentThroughput::test_burst_single_email[25_concurrent]",
+      "params": {
+        "n": 25
+      },
+      "param": "25_concurrent",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.5520205829961924,
+        "max": 0.9500176250003278,
+        "mean": 0.8267428081991965,
+        "stddev": 0.1586394969945458,
+        "rounds": 5,
+        "median": 0.8885442910031998,
+        "iqr": 0.1487869789962133,
+        "q1": 0.767035614750057,
+        "q3": 0.9158225937462703,
+        "iqr_outliers": 0,
+        "stddev_outliers": 1,
+        "outliers": "1;0",
+        "ld15iqr": 0.5520205829961924,
+        "hd15iqr": 0.9500176250003278,
+        "ops": 1.2095660102301835,
+        "total": 4.133714040995983,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_burst_loan_application[5_concurrent]",
+      "fullname": "benchmarks/test_throughput.py::TestConcurrentThroughput::test_burst_loan_application[5_concurrent]",
+      "params": {
+        "n": 5
+      },
+      "param": "5_concurrent",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.10894070799986366,
+        "max": 0.1234911660067155,
+        "mean": 0.1148338208993664,
+        "stddev": 0.005011712099968123,
+        "rounds": 10,
+        "median": 0.11379383349776617,
+        "iqr": 0.007853458999306895,
+        "q1": 0.11132124999858206,
+        "q3": 0.11917470899788896,
+        "iqr_outliers": 0,
+        "stddev_outliers": 4,
+        "outliers": "4;0",
+        "ld15iqr": 0.10894070799986366,
+        "hd15iqr": 0.1234911660067155,
+        "ops": 8.708235885282797,
+        "total": 1.148338208993664,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_burst_loan_application[10_concurrent]",
+      "fullname": "benchmarks/test_throughput.py::TestConcurrentThroughput::test_burst_loan_application[10_concurrent]",
+      "params": {
+        "n": 10
+      },
+      "param": "10_concurrent",
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.32526325000071665,
+        "max": 0.4007274999967194,
+        "mean": 0.36025903339905196,
+        "stddev": 0.03389274774297148,
+        "rounds": 5,
+        "median": 0.3443402920020162,
+        "iqr": 0.05889815625232586,
+        "q1": 0.33541131249694445,
+        "q3": 0.3943094687492703,
+        "iqr_outliers": 0,
+        "stddev_outliers": 2,
+        "outliers": "2;0",
+        "ld15iqr": 0.32526325000071665,
+        "hd15iqr": 0.4007274999967194,
+        "ops": 2.775780500394335,
+        "total": 1.80129516699526,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_fast_mode_latency",
+      "fullname": "benchmarks/test_throughput.py::TestModeComparison::test_fast_mode_latency",
+      "params": null,
+      "param": null,
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0008672920012031682,
+        "max": 0.009197333005431574,
+        "mean": 0.0014393609128077818,
+        "stddev": 0.0005398543227558034,
+        "rounds": 766,
+        "median": 0.0013792080026178155,
+        "iqr": 0.000930041991523467,
+        "q1": 0.000941875005082693,
+        "q3": 0.00187191699660616,
+        "iqr_outliers": 1,
+        "stddev_outliers": 118,
+        "outliers": "118;1",
+        "ld15iqr": 0.0008672920012031682,
+        "hd15iqr": 0.009197333005431574,
+        "ops": 694.7527830593133,
+        "total": 1.102550459210761,
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_advisor_mode_latency",
+      "fullname": "benchmarks/test_throughput.py::TestModeComparison::test_advisor_mode_latency",
+      "params": null,
+      "param": null,
+      "extra_info": {},
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 0.0007545420012320392,
+        "max": 0.005572124995524064,
+        "mean": 0.0013091782855004256,
+        "stddev": 0.0004609872976792239,
+        "rounds": 599,
+        "median": 0.0012421670035109855,
+        "iqr": 0.0008805842553556431,
+        "q1": 0.0008682495008542901,
+        "q3": 0.0017488337562099332,
+        "iqr_outliers": 1,
+        "stddev_outliers": 246,
+        "outliers": "246;1",
+        "ld15iqr": 0.0007545420012320392,
+        "hd15iqr": 0.005572124995524064,
+        "ops": 763.8379058645598,
+        "total": 0.784197793014755,
+        "iterations": 1
+      }
+    }
+  ],
+  "datetime": "2026-07-06T06:57:00.341723+00:00",
+  "version": "5.2.3",
+  "scenarios": {
+    "advisor_ambiguous": {
+      "name": "advisor_ambiguous",
+      "description": "BSB codes embedded in text without banking context words \u2014 scores land at 0.8 (below the advisor threshold). Tests the advisor routing path end-to-end when mode=advisor.",
+      "mode": "advisor",
+      "text": "The system uses routing codes such as 062-000, 013-005, and 085-005 to direct traffic between nodes. Each code is a six-digit hyphenated identifier allocated by the internal registry. No funds transfer is implied by these codes in this context.",
+      "expected_entity_types": [],
+      "tags": [
+        "medium",
+        "advisor-path",
+        "ambiguous"
+      ],
+      "detections": {
+        "entities": [
+          {
+            "text": "062-000",
+            "entity_type": "AU_BSB",
+            "start": 38,
+            "end": 45,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "high",
+            "verification": "advisor"
+          },
+          {
+            "text": "013-005",
+            "entity_type": "AU_BSB",
+            "start": 47,
+            "end": 54,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "high",
+            "verification": "advisor"
+          },
+          {
+            "text": "085-005",
+            "entity_type": "AU_BSB",
+            "start": 60,
+            "end": 67,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "high",
+            "verification": "advisor"
+          }
+        ],
+        "advisor_applied": false
+      }
+    },
+    "au_loan_application": {
+      "name": "au_loan_application",
+      "description": "Australian home loan application form \u2014 dense AU-specific PII across multiple fields. Tests the full AU recogniser stack.",
+      "mode": "fast",
+      "text": "HOME LOAN APPLICATION\n\nApplicant: James Kevin Hargreaves\nDate of Birth: 14 March 1982\nEmail: j.hargreaves@outlook.com.au\nMobile: 0421 774 390\nAlternate: (03) 9456 1234\n\nTax File Number: 123 456 782\nMedicare Card: 2123 45670 1\n\nEmployer ABN: 51 824 753 556\nEmployer ACN: 004 085 616\n\nBank Details\nBank: Commonwealth Bank of Australia\nBSB: 062-000\nAccount Number: 10234567\n\nCredit Card on File: 4111111111111111\n\nI declare the above information is true and correct.\nSignature: J.K. Hargreaves",
+      "expected_entity_types": [
+        "EMAIL_ADDRESS",
+        "AU_PHONE",
+        "AU_TFN",
+        "AU_MEDICARE",
+        "AU_ABN",
+        "AU_ACN",
+        "AU_BSB",
+        "CREDIT_CARD"
+      ],
+      "tags": [
+        "medium",
+        "au-specific",
+        "pii-dense"
+      ],
+      "detections": {
+        "entities": [
+          {
+            "text": "j.hargreaves@outlook.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 93,
+            "end": 117,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0421 774 390",
+            "entity_type": "AU_PHONE",
+            "start": 129,
+            "end": 141,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 186,
+            "end": 197,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "2123 45670 1",
+            "entity_type": "AU_MEDICARE",
+            "start": 213,
+            "end": 225,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "51 824 753 556",
+            "entity_type": "AU_ABN",
+            "start": 241,
+            "end": 255,
+            "score": 0.9500000000000001,
+            "is_pii": false,
+            "sensitivity": "low",
+            "verification": "trust"
+          },
+          {
+            "text": "004 085 616",
+            "entity_type": "AU_ACN",
+            "start": 270,
+            "end": 281,
+            "score": 0.9500000000000001,
+            "is_pii": false,
+            "sensitivity": "low",
+            "verification": "trust"
+          },
+          {
+            "text": "062-000",
+            "entity_type": "AU_BSB",
+            "start": 338,
+            "end": 345,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "high",
+            "verification": "advisor"
+          },
+          {
+            "text": "4111111111111111",
+            "entity_type": "CREDIT_CARD",
+            "start": 393,
+            "end": 409,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          }
+        ],
+        "advisor_applied": false
+      }
+    },
+    "bulk_customer_records": {
+      "name": "bulk_customer_records",
+      "description": "Simulated CRM export \u2014 40 customer rows, each with email, mobile and TFN. Tests engine throughput on a long document with repeated PII patterns.",
+      "mode": "fast",
+      "text": "CUSTOMER EXPORT \u2014 CONFIDENTIAL\nGenerated: 2024-12-01\n\nID,Name,Email,Mobile,TFN\n1001,Alice Nguyen,alice.nguyen@example.com,0412 001 001,123 456 782\n1002,Bob Tremblay,b.tremblay@example.net,0413 002 002,123 456 782\n1003,Carol Smith,carol.smith@corp.com.au,0414 003 003,123 456 782\n1004,David Okonkwo,d.okonkwo@example.org,0415 004 004,123 456 782\n1005,Eva Johansson,eva.j@example.com,0416 005 005,123 456 782\n1006,Frank Dupont,frank.dupont@example.com,0417 006 006,123 456 782\n1007,Grace Kim,g.kim@startup.io,0418 007 007,123 456 782\n1008,Henry Zhang,h.zhang@example.com,0419 008 008,123 456 782\n1009,Iris Petrov,iris.petrov@mail.com,0412 009 009,123 456 782\n1010,James O'Brien,james.obrien@example.com.au,0413 010 010,123 456 782\n1011,Kylie Anderson,kylie.a@example.com,0414 011 011,123 456 782\n1012,Liam Brown,liam.brown@example.net,0415 012 012,123 456 782\n1013,Mia Williams,mia.w@example.com,0416 013 013,123 456 782\n1014,Noah Jones,noah.jones@example.org,0417 014 014,123 456 782\n1015,Olivia Taylor,olivia.t@sample.com.au,0418 015 015,123 456 782\n1016,Paul Martin,paul.martin@example.com,0419 016 016,123 456 782\n1017,Quinn Wilson,q.wilson@example.com,0412 017 017,123 456 782\n1018,Ruby Moore,ruby.moore@example.net,0413 018 018,123 456 782\n1019,Sam Johnson,s.johnson@corp.com,0414 019 019,123 456 782\n1020,Tara Lee,tara.lee@example.com.au,0415 020 020,123 456 782\n1021,Uma Patel,uma.patel@example.com,0416 021 021,123 456 782\n1022,Victor Chen,v.chen@example.org,0417 022 022,123 456 782\n1023,Wendy Scott,wendy.scott@example.com,0418 023 023,123 456 782\n1024,Xander White,x.white@example.net,0419 024 024,123 456 782\n1025,Yara Harris,yara.harris@mail.com,0412 025 025,123 456 782\n1026,Zoe Clark,zoe.clark@example.com.au,0413 026 026,123 456 782\n1027,Aaron Lewis,a.lewis@example.com,0414 027 027,123 456 782\n1028,Beth Walker,beth.walker@example.com,0415 028 028,123 456 782\n1029,Carl Hall,carl.hall@example.net,0416 029 029,123 456 782\n1030,Diana Allen,diana.allen@corp.com,0417 030 030,123 456 782\n1031,Ethan Young,e.young@example.org,0418 031 031,123 456 782\n1032,Fiona King,fiona.king@example.com,0419 032 032,123 456 782\n1033,George Wright,g.wright@example.com.au,0412 033 033,123 456 782\n1034,Hannah Lopez,h.lopez@example.com,0413 034 034,123 456 782\n1035,Ivan Hill,ivan.hill@mail.com,0414 035 035,123 456 782\n1036,Julia Scott,julia.scott@example.com,0415 036 036,123 456 782\n1037,Karl Green,karl.green@example.net,0416 037 037,123 456 782\n1038,Lucy Adams,lucy.adams@example.com,0417 038 038,123 456 782\n1039,Mike Baker,mike.baker@corp.com.au,0418 039 039,123 456 782\n1040,Nancy Carter,nancy.carter@example.org,0419 040 040,123 456 782",
+      "expected_entity_types": [
+        "EMAIL_ADDRESS",
+        "AU_PHONE",
+        "AU_TFN"
+      ],
+      "tags": [
+        "long",
+        "pii-dense",
+        "throughput"
+      ],
+      "detections": {
+        "entities": [
+          {
+            "text": "alice.nguyen@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 97,
+            "end": 121,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0412 001 001",
+            "entity_type": "AU_PHONE",
+            "start": 122,
+            "end": 134,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 135,
+            "end": 146,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "b.tremblay@example.net",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 165,
+            "end": 187,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0413 002 002",
+            "entity_type": "AU_PHONE",
+            "start": 188,
+            "end": 200,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 201,
+            "end": 212,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "carol.smith@corp.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 230,
+            "end": 250,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0414 003 003",
+            "entity_type": "AU_PHONE",
+            "start": 254,
+            "end": 266,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 267,
+            "end": 278,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "d.okonkwo@example.org",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 298,
+            "end": 319,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0415 004 004",
+            "entity_type": "AU_PHONE",
+            "start": 320,
+            "end": 332,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 333,
+            "end": 344,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "eva.j@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 364,
+            "end": 381,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0416 005 005",
+            "entity_type": "AU_PHONE",
+            "start": 382,
+            "end": 394,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 395,
+            "end": 406,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "frank.dupont@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 425,
+            "end": 449,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0417 006 006",
+            "entity_type": "AU_PHONE",
+            "start": 450,
+            "end": 462,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 463,
+            "end": 474,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "g.kim@startup.io",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 490,
+            "end": 506,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0418 007 007",
+            "entity_type": "AU_PHONE",
+            "start": 507,
+            "end": 519,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 520,
+            "end": 531,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "h.zhang@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 549,
+            "end": 568,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0419 008 008",
+            "entity_type": "AU_PHONE",
+            "start": 569,
+            "end": 581,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 582,
+            "end": 593,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "iris.petrov@mail.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 611,
+            "end": 631,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0412 009 009",
+            "entity_type": "AU_PHONE",
+            "start": 632,
+            "end": 644,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 645,
+            "end": 656,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "james.obrien@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 676,
+            "end": 700,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0413 010 010",
+            "entity_type": "AU_PHONE",
+            "start": 704,
+            "end": 716,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 717,
+            "end": 728,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "kylie.a@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 749,
+            "end": 768,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0414 011 011",
+            "entity_type": "AU_PHONE",
+            "start": 769,
+            "end": 781,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 782,
+            "end": 793,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "liam.brown@example.net",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 810,
+            "end": 832,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0415 012 012",
+            "entity_type": "AU_PHONE",
+            "start": 833,
+            "end": 845,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 846,
+            "end": 857,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "mia.w@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 876,
+            "end": 893,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0416 013 013",
+            "entity_type": "AU_PHONE",
+            "start": 894,
+            "end": 906,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 907,
+            "end": 918,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "noah.jones@example.org",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 935,
+            "end": 957,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0417 014 014",
+            "entity_type": "AU_PHONE",
+            "start": 958,
+            "end": 970,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 971,
+            "end": 982,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "olivia.t@sample.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1002,
+            "end": 1021,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0418 015 015",
+            "entity_type": "AU_PHONE",
+            "start": 1025,
+            "end": 1037,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1038,
+            "end": 1049,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "paul.martin@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1067,
+            "end": 1090,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0419 016 016",
+            "entity_type": "AU_PHONE",
+            "start": 1091,
+            "end": 1103,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1104,
+            "end": 1115,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "q.wilson@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1134,
+            "end": 1154,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0412 017 017",
+            "entity_type": "AU_PHONE",
+            "start": 1155,
+            "end": 1167,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1168,
+            "end": 1179,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "ruby.moore@example.net",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1196,
+            "end": 1218,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0413 018 018",
+            "entity_type": "AU_PHONE",
+            "start": 1219,
+            "end": 1231,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1232,
+            "end": 1243,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "s.johnson@corp.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1261,
+            "end": 1279,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0414 019 019",
+            "entity_type": "AU_PHONE",
+            "start": 1280,
+            "end": 1292,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1293,
+            "end": 1304,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "tara.lee@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1319,
+            "end": 1339,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0415 020 020",
+            "entity_type": "AU_PHONE",
+            "start": 1343,
+            "end": 1355,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1356,
+            "end": 1367,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "uma.patel@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1383,
+            "end": 1404,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0416 021 021",
+            "entity_type": "AU_PHONE",
+            "start": 1405,
+            "end": 1417,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1418,
+            "end": 1429,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "v.chen@example.org",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1447,
+            "end": 1465,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0417 022 022",
+            "entity_type": "AU_PHONE",
+            "start": 1466,
+            "end": 1478,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1479,
+            "end": 1490,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "wendy.scott@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1508,
+            "end": 1531,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0418 023 023",
+            "entity_type": "AU_PHONE",
+            "start": 1532,
+            "end": 1544,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1545,
+            "end": 1556,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "x.white@example.net",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1575,
+            "end": 1594,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0419 024 024",
+            "entity_type": "AU_PHONE",
+            "start": 1595,
+            "end": 1607,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1608,
+            "end": 1619,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "yara.harris@mail.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1637,
+            "end": 1657,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0412 025 025",
+            "entity_type": "AU_PHONE",
+            "start": 1658,
+            "end": 1670,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1671,
+            "end": 1682,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "zoe.clark@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1698,
+            "end": 1719,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0413 026 026",
+            "entity_type": "AU_PHONE",
+            "start": 1723,
+            "end": 1735,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1736,
+            "end": 1747,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "a.lewis@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1765,
+            "end": 1784,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0414 027 027",
+            "entity_type": "AU_PHONE",
+            "start": 1785,
+            "end": 1797,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1798,
+            "end": 1809,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "beth.walker@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1827,
+            "end": 1850,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0415 028 028",
+            "entity_type": "AU_PHONE",
+            "start": 1851,
+            "end": 1863,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1864,
+            "end": 1875,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "carl.hall@example.net",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1891,
+            "end": 1912,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0416 029 029",
+            "entity_type": "AU_PHONE",
+            "start": 1913,
+            "end": 1925,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1926,
+            "end": 1937,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "diana.allen@corp.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 1955,
+            "end": 1975,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0417 030 030",
+            "entity_type": "AU_PHONE",
+            "start": 1976,
+            "end": 1988,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 1989,
+            "end": 2000,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "e.young@example.org",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2018,
+            "end": 2037,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0418 031 031",
+            "entity_type": "AU_PHONE",
+            "start": 2038,
+            "end": 2050,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2051,
+            "end": 2062,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "fiona.king@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2079,
+            "end": 2101,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0419 032 032",
+            "entity_type": "AU_PHONE",
+            "start": 2102,
+            "end": 2114,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2115,
+            "end": 2126,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "g.wright@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2146,
+            "end": 2166,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0412 033 033",
+            "entity_type": "AU_PHONE",
+            "start": 2170,
+            "end": 2182,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2183,
+            "end": 2194,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "h.lopez@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2213,
+            "end": 2232,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0413 034 034",
+            "entity_type": "AU_PHONE",
+            "start": 2233,
+            "end": 2245,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2246,
+            "end": 2257,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "ivan.hill@mail.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2273,
+            "end": 2291,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0414 035 035",
+            "entity_type": "AU_PHONE",
+            "start": 2292,
+            "end": 2304,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2305,
+            "end": 2316,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "julia.scott@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2334,
+            "end": 2357,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0415 036 036",
+            "entity_type": "AU_PHONE",
+            "start": 2358,
+            "end": 2370,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2371,
+            "end": 2382,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "karl.green@example.net",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2399,
+            "end": 2421,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0416 037 037",
+            "entity_type": "AU_PHONE",
+            "start": 2422,
+            "end": 2434,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2435,
+            "end": 2446,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "lucy.adams@example.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2463,
+            "end": 2485,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0417 038 038",
+            "entity_type": "AU_PHONE",
+            "start": 2486,
+            "end": 2498,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2499,
+            "end": 2510,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "mike.baker@corp.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2527,
+            "end": 2546,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0418 039 039",
+            "entity_type": "AU_PHONE",
+            "start": 2550,
+            "end": 2562,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2563,
+            "end": 2574,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "nancy.carter@example.org",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 2593,
+            "end": 2617,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0419 040 040",
+            "entity_type": "AU_PHONE",
+            "start": 2618,
+            "end": 2630,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 2631,
+            "end": 2642,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          }
+        ],
+        "advisor_applied": false
+      }
+    },
+    "customer_notification": {
+      "name": "customer_notification",
+      "description": "Realistic outbound customer email \u2014 email, phone, and a reference number. Medium length.",
+      "mode": "fast",
+      "text": "Dear valued customer,\n\nWe are writing to confirm your recent account update. Our records show your contact email as sarah.j.thompson@gmail.com and your registered mobile as 0412 887 342.\n\nIf you did not request this change, please call our fraud team immediately on 1800 123 456 or reply to this message.\n\nYour case reference is CAS-2024-00419. A member of our team will follow up within 48 hours.\n\nKind regards,\nCustomer Support Team",
+      "expected_entity_types": [
+        "EMAIL_ADDRESS",
+        "AU_PHONE"
+      ],
+      "tags": [
+        "medium",
+        "customer-facing"
+      ],
+      "detections": {
+        "entities": [
+          {
+            "text": "sarah.j.thompson@gmail.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 116,
+            "end": 142,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0412 887 342",
+            "entity_type": "AU_PHONE",
+            "start": 173,
+            "end": 185,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          }
+        ],
+        "advisor_applied": false
+      }
+    },
+    "dense_pii": {
+      "name": "dense_pii",
+      "description": "Every AU entity type packed into a short passage \u2014 stress-tests overlap deduplication and multi-recogniser concurrency.",
+      "mode": "fast",
+      "text": "URGENT \u2014 Internal use only. Contact james.hargreaves@acme.com.au or call 0421 774 390. TFN: 123 456 782. Medicare: 2123 45670 1. Visa card: 4111111111111111. Transfer to BSB 062-000. ABN 51 824 753 556. ACN 004 085 616.",
+      "expected_entity_types": [
+        "EMAIL_ADDRESS",
+        "AU_PHONE",
+        "AU_TFN",
+        "AU_MEDICARE",
+        "CREDIT_CARD",
+        "AU_BSB",
+        "AU_ABN",
+        "AU_ACN"
+      ],
+      "tags": [
+        "short",
+        "pii-dense",
+        "all-types"
+      ],
+      "detections": {
+        "entities": [
+          {
+            "text": "james.hargreaves@acme.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 36,
+            "end": 61,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "0421 774 390",
+            "entity_type": "AU_PHONE",
+            "start": 73,
+            "end": 85,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          },
+          {
+            "text": "123 456 782",
+            "entity_type": "AU_TFN",
+            "start": 92,
+            "end": 103,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "2123 45670 1",
+            "entity_type": "AU_MEDICARE",
+            "start": 115,
+            "end": 127,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "4111111111111111",
+            "entity_type": "CREDIT_CARD",
+            "start": 140,
+            "end": 156,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "critical",
+            "verification": "trust"
+          },
+          {
+            "text": "062-000",
+            "entity_type": "AU_BSB",
+            "start": 174,
+            "end": 181,
+            "score": 0.9500000000000001,
+            "is_pii": true,
+            "sensitivity": "high",
+            "verification": "advisor"
+          },
+          {
+            "text": "51 824 753 556",
+            "entity_type": "AU_ABN",
+            "start": 187,
+            "end": 201,
+            "score": 0.9500000000000001,
+            "is_pii": false,
+            "sensitivity": "low",
+            "verification": "trust"
+          },
+          {
+            "text": "004 085 616",
+            "entity_type": "AU_ACN",
+            "start": 207,
+            "end": 218,
+            "score": 0.9500000000000001,
+            "is_pii": false,
+            "sensitivity": "low",
+            "verification": "trust"
+          }
+        ],
+        "advisor_applied": false
+      }
+    },
+    "financial_report": {
+      "name": "financial_report",
+      "description": "Corporate financial report extract \u2014 numbers, percentages, dollar figures, but no personal identifiers. Tests false-positive rate on numeric-heavy clean text.",
+      "mode": "fast",
+      "text": "CONDENSED CONSOLIDATED STATEMENT OF FINANCIAL PERFORMANCE\nFor the half-year ended 31 December 2024 (unaudited)\n\nRevenue from continuing operations increased 8.3 percent to $412.7 million, up from $381.2 million in the prior corresponding period. Gross profit margin expanded 120 basis points to 41.5 percent, reflecting improved supply-chain efficiencies and favourable foreign exchange movements.\n\nOperating expenses were $147.3 million, representing 35.7 percent of revenue compared to 37.1 percent in the prior period. EBITDA was $123.6 million, yielding an EBITDA margin of 29.9 percent.\n\nNet profit after tax attributable to members of the parent entity was $74.2 million, an increase of 11.4 percent. Earnings per share (basic) were 34.1 cents, compared with 30.6 cents in the prior half.\n\nThe board has declared an interim dividend of 17.0 cents per share, fully franked, payable to shareholders registered as at the record date. The dividend reinvestment plan will operate at a 1.5 percent discount to the five-day volume-weighted average price.\n\nNet debt at period end was $203.4 million, representing a leverage ratio of 1.6 times EBITDA. The group maintains a $350.0 million revolving credit facility with a syndicate of four major Australian banks, of which $146.6 million was drawn at 31 December 2024.",
+      "expected_entity_types": [],
+      "tags": [
+        "long",
+        "clean",
+        "false-positive-test"
+      ],
+      "detections": {
+        "entities": [],
+        "advisor_applied": false
+      }
+    },
+    "single_email": {
+      "name": "single_email",
+      "description": "Minimal input \u2014 one email address. Baseline for the shortest possible detection round-trip.",
+      "mode": "fast",
+      "text": "Please direct all invoice enquiries to billing@acme.com.au and we will respond within two business days.",
+      "expected_entity_types": [
+        "EMAIL_ADDRESS"
+      ],
+      "tags": [
+        "short",
+        "baseline"
+      ],
+      "detections": {
+        "entities": [
+          {
+            "text": "billing@acme.com",
+            "entity_type": "EMAIL_ADDRESS",
+            "start": 39,
+            "end": 55,
+            "score": 0.8,
+            "is_pii": true,
+            "sensitivity": "medium",
+            "verification": "trust"
+          }
+        ],
+        "advisor_applied": false
+      }
+    }
+  }
+}
