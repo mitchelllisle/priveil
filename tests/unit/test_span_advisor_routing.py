@@ -342,3 +342,37 @@ class TestAdvisorIntegration:
         )
         assert resp.status_code == 200
         assert resp.json()["data"]["advisor_applied"] is False
+
+
+# ── recogniser routing declarations ───────────────────────────────────────────
+
+
+class TestNERRecognisersRouteToAdvisor:
+    """The GLiNER-backed recognisers must declare verification='advisor'.
+
+    span_advisor.md instructs the LLM to drop brand names tagged as PERSON and
+    generic locations tagged as LOCATION. SpanAdvisor.advise() only submits spans
+    whose verification is 'advisor', so declaring 'trust' here makes that prompt
+    guidance unreachable and the false-positive filter dead code.
+    """
+
+    def test_person_routes_to_advisor(self) -> None:
+        from priveil.recognisers.person import PersonRecogniser
+
+        assert PersonRecogniser.verification == "advisor"
+
+    def test_location_routes_to_advisor(self) -> None:
+        from priveil.recognisers.location import LocationRecogniser
+
+        assert LocationRecogniser.verification == "advisor"
+
+    async def test_low_score_person_span_reaches_advisor(self) -> None:
+        """A below-threshold PERSON span must be submitted, not passed through."""
+        advisor, spy = _advisor_with_spy()
+        person = _entity(
+            entity_type=EntityType.PERSON, text="Acme Corp", score=0.6, verification="advisor"
+        )
+        await advisor.advise("Acme Corp shipped it", (person,))
+        spy.assert_called_once()
+        submitted = [e.text for e in spy.call_args.args[1]]
+        assert submitted == ["Acme Corp"]

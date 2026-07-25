@@ -37,7 +37,12 @@ def _ephemeral_audit_key() -> bytes:
 
 
 def _dedup_global(tagged: list[tuple[Span, BaseRecogniser]]) -> list[tuple[Span, BaseRecogniser]]:
-    """Remove overlapping spans across all recognisers, keeping the highest score.
+    """Remove overlapping spans across all recognisers, keeping the best span.
+
+    "Best" is the higher score, then the longer span. The length tie-break matters:
+    a partial match ("212-555" as AU_BSB) must not displace the full one
+    ("212-555-0123" as PHONE_NUMBER), or pseudonymisation redacts the prefix and
+    leaves the remainder in the clear.
 
     Args:
         tagged: Unsorted list of (span, recogniser) pairs.
@@ -47,13 +52,16 @@ def _dedup_global(tagged: list[tuple[Span, BaseRecogniser]]) -> list[tuple[Span,
     """
     if not tagged:
         return []
-    sorted_tagged = sorted(tagged, key=lambda x: (x[0].start, -x[0].score))
+    sorted_tagged = sorted(tagged, key=lambda x: (x[0].start, -x[0].score, x[0].start - x[0].end))
     result: list[tuple[Span, BaseRecogniser]] = [sorted_tagged[0]]
     for span, rec in sorted_tagged[1:]:
         prev_span, _ = result[-1]
         if span.start < prev_span.end:
-            # Overlap — keep whichever has higher score
-            if span.score > prev_span.score:
+            # Overlap — keep whichever scores higher, preferring the longer span on a tie.
+            if (span.score, span.end - span.start) > (
+                prev_span.score,
+                prev_span.end - prev_span.start,
+            ):
                 result[-1] = (span, rec)
         else:
             result.append((span, rec))

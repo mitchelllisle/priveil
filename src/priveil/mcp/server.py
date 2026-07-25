@@ -61,6 +61,14 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
             "gliner2 not installed — NER recognisers disabled. "
             "Install with: uv sync --extra gliner"
         )
+    except Exception:
+        # Installed but unloadable (offline, cold HF cache, corrupt download).
+        # Degrade to regex-only rather than failing startup.
+        logger.exception(
+            "GLiNER2 model '%s' failed to load — continuing with regex-only detection; "
+            "PERSON, LOCATION and DATE_TIME will not be detected.",
+            settings.gliner2_model,
+        )
 
     recognisers = build_recognisers(gliner_model=gliner_model)
     audit_hash_key = (

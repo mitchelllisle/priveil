@@ -5,8 +5,10 @@ Entity spans are routed to one of two tiers:
   trust   — kept as-is (trust-verified recogniser or score at/above advisor_score_threshold).
   advisor — submitted to the LLM advisor for contextual verification.
 
-When the LLM advisor is unavailable (PRIVEIL_ADVISOR_MODEL not set) the advisor
-tier degrades conservatively — spans are kept rather than silently dropped.
+On any advisor failure — timeout, transport error, malformed output — the
+advisor tier fails open: spans are kept rather than silently dropped. Choosing
+"fast" mode when PRIVEIL_ADVISOR_MODEL is unset happens a layer up, in the
+routes and MCP tools that decide whether to wire an advisor at all.
 
 All LLM calls go through pydantic-ai so structured output is type-safe and
 consistent with the assessor path.

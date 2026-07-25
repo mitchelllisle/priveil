@@ -20,6 +20,8 @@ class EmailRecogniser(RegexRecogniser):
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<EMAIL>"}
 
     patterns: ClassVar[list[re.Pattern[str]]] = [
-        re.compile(r"\b[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}\b", re.IGNORECASE),
+        # Domain allows one or more labels so multi-label TLDs (acme.com.au) and
+        # subdomains (sub.example.org) are captured whole rather than truncated.
+        re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-zA-Z]{2,}\b", re.IGNORECASE),
     ]
     context_words: ClassVar[list[str]] = []

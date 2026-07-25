@@ -1,8 +1,8 @@
-"""Unit tests for Australian recogniser checksum functions and validate_result.
+"""Unit tests for Australian recogniser checksum functions and _validate.
 
-All tests are pure — no engine, no network, no spaCy. The checksum functions
-and validate_result are tested directly against known-valid and known-invalid
-values from the relevant authority (ATO, ASIC, Services Australia).
+All tests are pure — no engine, no network, no model downloads. The checksum
+functions and _validate are tested directly against known-valid and
+known-invalid values from the relevant authority (ATO, ASIC, Services Australia).
 """
 
 import pytest
@@ -35,14 +35,14 @@ class TestTFNValidateResult:
     recogniser = AUTFNRecogniser()
 
     def test_valid_returns_true(self) -> None:
-        # validate_result must return True (not None) so presidio keeps the match
+        # _validate must return True (not None) to affirm a checksum-valid match.
         assert self.recogniser._validate("123 456 782") is True
 
     def test_invalid_returns_false_not_none(self) -> None:
-        # The spike bug: returning None here means presidio keeps the match at
-        # its original score. We must return False to invalidate.
+        # The spike bug: None means "no validation performed", so RegexRecogniser.detect()
+        # keeps the span. Only False discards it.
         result = self.recogniser._validate("123 456 789")
-        assert result is False, f"Expected False, got {result!r} — validate_result must not return None on failure"
+        assert result is False, f"Expected False, got {result!r} — _validate must not return None on failure"
 
 
 # ── ABN ───────────────────────────────────────────────────────────────────────
@@ -136,23 +136,23 @@ class TestTFNLegacyHandling:
         assert self.recogniser._validate("12 345 678") is False
 
 
-# ── Cross-cutting: validate_result never returns None on failure ───────────────
+# ── Cross-cutting: _validate never returns None on failure ────────────────────
 
 @pytest.mark.parametrize("recogniser,invalid_text", [
     (AUTFNRecogniser(), "123 456 789"),
     (AUABNRecogniser(), "51 824 753 999"),
     (AUACNRecogniser(), "004 085 617"),
 ])
-def test_validate_result_returns_false_not_none_on_invalid(
+def test_validate_returns_false_not_none_on_invalid(
     recogniser: object, invalid_text: str
 ) -> None:
-    """validate_result must return False (not None) for invalid inputs.
+    """_validate must return False (not None) for invalid inputs.
 
-    Returning None would tell presidio 'no validation performed' and the
-    match would be kept at its original score — a critical correctness bug.
+    Returning None means 'no validation performed', so RegexRecogniser.detect()
+    keeps the span at its original score — a critical correctness bug.
     """
     result = recogniser._validate(invalid_text)  # type: ignore[union-attr]
     assert result is False, (
-        f"{type(recogniser).__name__}.validate_result({invalid_text!r}) returned "
-        f"{result!r}; expected False so presidio invalidates the match"
+        f"{type(recogniser).__name__}._validate({invalid_text!r}) returned "
+        f"{result!r}; expected False so detect() discards the span"
     )

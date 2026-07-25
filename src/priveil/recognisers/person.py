@@ -14,7 +14,7 @@ class PersonRecogniser(GLiNERRecogniser):
     entity_type: ClassVar[EntityType] = EntityType.PERSON
     is_pii: ClassVar[bool] = True
     sensitivity: ClassVar[Sensitivity] = "high"
-    verification: ClassVar[Literal["trust", "advisor"]] = "trust"
+    verification: ClassVar[Literal["trust", "advisor"]] = "advisor"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<PERSON>"}
 

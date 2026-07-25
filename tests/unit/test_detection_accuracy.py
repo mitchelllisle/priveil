@@ -345,3 +345,71 @@ class TestMixedDocument:
         entities = await _detect(analyser, text)
         pii = [e for e in entities if e.is_pii]
         assert len(pii) == 0, f"No PII expected in financial report; got: {pii}"
+
+
+# ── span exactness ────────────────────────────────────────────────────────────
+
+
+class TestSpanExactness:
+    """A detected span must cover the whole identifier.
+
+    Asserting only on entity type lets a truncated span pass: the type is present
+    but pseudonymisation leaves the remainder in the clear (``<EMAIL>.au``).
+    These cases pin the exact matched text.
+    """
+
+    @pytest.mark.parametrize("text,expected", [
+        ("Email billing@acme.com.au today", "billing@acme.com.au"),
+        ("Contact dev+tag@sub.example.org now", "dev+tag@sub.example.org"),
+        ("Write to x@y.co.uk please", "x@y.co.uk"),
+        ("Simple a@b.com here", "a@b.com"),
+        ("Trailing stop a@b.com.", "a@b.com"),
+    ])
+    async def test_email_span_is_complete(
+        self, analyser: AsyncAnalyser, text: str, expected: str
+    ) -> None:
+        entities = await _detect(analyser, text)
+        emails = [e.text for e in entities if e.entity_type is EntityType.EMAIL_ADDRESS]
+        assert expected in emails, f"Expected exact span {expected!r} in {emails!r}"
+
+    @pytest.mark.parametrize("text,expected", [
+        ("Call +1 212 555 0123 now", "+1 212 555 0123"),
+        ("Ring (212) 555-0123 today", "(212) 555-0123"),
+        ("Dial 212-555-0123 please", "212-555-0123"),
+        ("Freecall 1-800-555-0199 now", "1-800-555-0199"),
+    ])
+    async def test_phone_span_is_complete(
+        self, analyser: AsyncAnalyser, text: str, expected: str
+    ) -> None:
+        entities = await _detect(analyser, text)
+        phones = [e.text for e in entities if e.entity_type is EntityType.PHONE_NUMBER]
+        assert expected in phones, f"Expected exact span {expected!r} in {phones!r}"
+
+    @pytest.mark.parametrize("text,expected", [
+        ("London office +44 20 7946 0958 answers", "+44 20 7946 0958"),
+        ("Berlin desk +49 30 901820 answers", "+49 30 901820"),
+    ])
+    async def test_international_phone_detected(
+        self, analyser: AsyncAnalyser, text: str, expected: str
+    ) -> None:
+        """A '+'-prefixed international number must not pass through unredacted."""
+        entities = await _detect(analyser, text)
+        phones = [e.text for e in entities if e.entity_type is EntityType.PHONE_NUMBER]
+        assert expected in phones, f"Expected exact span {expected!r} in {phones!r}"
+
+    async def test_credit_card_not_matched_as_phone(self, analyser: AsyncAnalyser) -> None:
+        """The phone lookarounds must not carve a 10-digit span out of a longer number."""
+        entities = await _detect(analyser, "Card 4111111111111111 on file")
+        phones = [e.text for e in entities if e.entity_type is EntityType.PHONE_NUMBER]
+        assert phones == [], f"Expected no PHONE_NUMBER spans; got {phones!r}"
+
+    async def test_partial_match_does_not_displace_full_span(
+        self, analyser: AsyncAnalyser
+    ) -> None:
+        """AU_BSB matches '212-555' inside a phone number; the full span must win.
+
+        Losing the tie redacts only the prefix ('XXX-XXX-0123'), leaking the rest.
+        """
+        entities = await _detect(analyser, "Dial 212-555-0123 please")
+        covering = [e for e in entities if e.start <= 5 and e.end >= 17]
+        assert covering, f"No entity covers the whole number; got {[(e.text, e.entity_type.value) for e in entities]}"

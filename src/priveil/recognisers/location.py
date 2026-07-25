@@ -14,7 +14,7 @@ class LocationRecogniser(GLiNERRecogniser):
     entity_type: ClassVar[EntityType] = EntityType.LOCATION
     is_pii: ClassVar[bool] = True
     sensitivity: ClassVar[Sensitivity] = "low"
-    verification: ClassVar[Literal["trust", "advisor"]] = "trust"
+    verification: ClassVar[Literal["trust", "advisor"]] = "advisor"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<LOCATION>"}
 
