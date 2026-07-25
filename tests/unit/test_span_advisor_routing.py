@@ -21,7 +21,6 @@ from priveil.advisor.span_advisor import SpanAdvisor
 from priveil.domain.entities import Entity, EntityType
 from priveil.settings import Settings
 
-
 # ── test helpers ──────────────────────────────────────────────────────────────
 
 
