@@ -14,4 +14,4 @@ htmlcov/
 *.coverage
 .env
 .env.*
-.cursor/
+.claude/
