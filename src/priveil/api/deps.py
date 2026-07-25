@@ -3,10 +3,10 @@ from typing import Annotated, cast
 from fastapi import Depends, HTTPException, Request
 from pydantic_ai import Agent
 
+from priveil.advisor.assessor import AssessmentDecision
+from priveil.advisor.span_advisor import SpanAdvisor
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
-from priveil.judge.assessor import AssessmentDecision
-from priveil.judge.refiner import Refiner
 
 
 def _get_analyser(request: Request) -> AsyncAnalyser:
@@ -23,12 +23,12 @@ def _get_pseudonymiser(request: Request) -> AsyncPseudonymiser:
 PseudonymiserDep = Annotated[AsyncPseudonymiser, Depends(_get_pseudonymiser)]
 
 
-def _get_refiner(request: Request) -> Refiner | None:
-    return request.app.state.refiner  # type: ignore[no-any-return]  # conduit: app.state is untyped by FastAPI
+def _get_advisor(request: Request) -> SpanAdvisor | None:
+    return request.app.state.advisor  # type: ignore[no-any-return]  # conduit: app.state is untyped by FastAPI
 
 
 # Optional — routes fall back to fast mode (with surfaced mode_used) when this is None.
-RefinerDep = Annotated[Refiner | None, Depends(_get_refiner)]
+AdvisorDep = Annotated[SpanAdvisor | None, Depends(_get_advisor)]
 
 
 def _get_assessor(request: Request) -> "Agent[None, AssessmentDecision]":
@@ -36,7 +36,7 @@ def _get_assessor(request: Request) -> "Agent[None, AssessmentDecision]":
     if agent is None:
         raise HTTPException(
             status_code=503,
-            detail="Assessment not available — set PRIVEIL_JUDGE_MODEL to enable",
+            detail="Assessment not available — set PRIVEIL_ADVISOR_MODEL to enable",
         )
     return agent  # type: ignore[no-any-return]  # conduit: app.state is untyped by FastAPI
 

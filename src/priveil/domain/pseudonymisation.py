@@ -26,11 +26,11 @@ class PseudonymisationRequest(BaseModel, frozen=True):
         default_factory=dict,
         description="Override the default operator per entity type, e.g. {'PERSON': 'redact'}",
     )
-    mode: Literal["fast", "judge"] = Field(
-        default="judge",
+    mode: Literal["fast", "advisor"] = Field(
+        default="advisor",
         description=(
-            "'judge' runs an LLM pass on detections before pseudonymising (slower). "
-            "'fast' skips the LLM. Falls back to 'fast' when no judge model is configured "
+            "'advisor' runs an LLM pass on detections before pseudonymising (slower). "
+            "'fast' skips the LLM. Falls back to 'fast' when PRIVEIL_ADVISOR_MODEL is unset "
             "(surfaced via meta.response.mode)."
         ),
     )
@@ -49,4 +49,4 @@ class PseudonymisationData(BaseModel, frozen=True):
 
     anonymised_text: str
     entity_map: dict[str, str]
-    judge_applied: bool = False
+    advisor_applied: bool = False

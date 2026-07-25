@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal, NamedTuple
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -16,7 +16,6 @@ class EntityType(str, Enum):
     CREDIT_CARD = "CREDIT_CARD"
     LOCATION = "LOCATION"
     DATE_TIME = "DATE_TIME"
-    NRP = "NRP"  # Nationality / religion / political group
 
     # Australian financial & government identifiers (slice 2)
     AU_TFN = "AU_TFN"            # Tax File Number — critical PII
@@ -26,38 +25,6 @@ class EntityType(str, Enum):
     AU_ACCOUNT_NUMBER = "AU_ACCOUNT_NUMBER"  # Bank account number
     AU_MEDICARE = "AU_MEDICARE"  # Medicare card number — critical PII
     AU_PHONE = "AU_PHONE"        # Australian mobile / landline
-
-
-class EntityClassification(NamedTuple):
-    """PII classification and sensitivity level for an entity type."""
-
-    is_pii: bool
-    sensitivity: Sensitivity
-
-
-# Business rules: classification for each recognised entity type.
-# Every EntityType member must have an entry — KeyError means enum and map are out of sync.
-ENTITY_CLASSIFICATION: dict[EntityType, EntityClassification] = {
-    # Standard types
-    EntityType.PERSON: EntityClassification(is_pii=True, sensitivity="high"),
-    EntityType.EMAIL_ADDRESS: EntityClassification(is_pii=True, sensitivity="medium"),
-    EntityType.PHONE_NUMBER: EntityClassification(is_pii=True, sensitivity="medium"),
-    EntityType.CREDIT_CARD: EntityClassification(is_pii=True, sensitivity="critical"),
-    EntityType.LOCATION: EntityClassification(is_pii=True, sensitivity="low"),
-    EntityType.DATE_TIME: EntityClassification(is_pii=False, sensitivity="low"),
-    EntityType.NRP: EntityClassification(is_pii=False, sensitivity="low"),
-    # Australian types
-    EntityType.AU_TFN: EntityClassification(is_pii=True, sensitivity="critical"),
-    EntityType.AU_ABN: EntityClassification(is_pii=False, sensitivity="low"),
-    EntityType.AU_ACN: EntityClassification(is_pii=False, sensitivity="low"),
-    # BSB alone identifies a branch, not a person. We still classify it as high/PII
-    # in this domain because it commonly appears alongside account/customer data in
-    # financial workflows and materially increases re-identification exposure.
-    EntityType.AU_BSB: EntityClassification(is_pii=True, sensitivity="high"),
-    EntityType.AU_ACCOUNT_NUMBER: EntityClassification(is_pii=True, sensitivity="high"),
-    EntityType.AU_MEDICARE: EntityClassification(is_pii=True, sensitivity="critical"),
-    EntityType.AU_PHONE: EntityClassification(is_pii=True, sensitivity="medium"),
-}
 
 
 class Entity(BaseModel, frozen=True):
@@ -70,3 +37,5 @@ class Entity(BaseModel, frozen=True):
     score: float
     is_pii: bool
     sensitivity: Sensitivity
+    # Set from the recogniser — determines whether this span needs advisor verification.
+    verification: Literal["trust", "advisor"] = "trust"

@@ -1,8 +1,7 @@
 """FastMCP server and lifespan for priveil.
 
-This module is part of the optional ``mcp`` extra::
-
-    pip install "priveil[mcp]"
+Exposes detect, pseudonymise, and assess as MCP tools backed by the same
+engine stack as the FastAPI service.
 """
 
 from __future__ import annotations
@@ -17,18 +16,19 @@ from typing import cast
 from presidio_anonymizer import AnonymizerEngine
 from pydantic_ai import Agent
 
-from priveil.engine.analyser import AsyncAnalyser, build_analyser_engine
+from priveil.advisor.assessor import AssessmentDecision
+from priveil.advisor.span_advisor import SpanAdvisor
+from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
-from priveil.judge.assessor import AssessmentDecision
-from priveil.judge.refiner import Refiner
-from priveil.recognisers.registry import build_recognisers
+from priveil.recognisers.registry import build_operator_configs, build_recognisers
 from priveil.settings import Settings
 
 try:
     from mcp.server.fastmcp import Context, FastMCP
 except ImportError as exc:
     raise ImportError(
-        'The priveil MCP server requires the optional "mcp" extra. Install it with: pip install "priveil[mcp]"'
+        'The priveil MCP server requires the optional "mcp" extra. '
+        'Install it with: uv sync --extra mcp'
     ) from exc
 
 
@@ -36,7 +36,7 @@ except ImportError as exc:
 class _State:
     analyser: AsyncAnalyser
     pseudonymiser: AsyncPseudonymiser
-    refiner: Refiner | None
+    advisor: SpanAdvisor | None
     assessor: Agent[None, AssessmentDecision] | None
     executor: ThreadPoolExecutor
 
@@ -44,53 +44,59 @@ class _State:
 logger = logging.getLogger(__name__)
 
 
-def _require_spacy_model(model_name: str) -> None:
-    """Fail fast if the spaCy model is not installed.
-
-    The MCP server runs as a subprocess and must be ready immediately.
-    Blocking to download a model during the MCP handshake causes clients
-    to time out. Raise with a clear install command instead.
-
-    Args:
-        model_name: spaCy model name, e.g. 'en_core_web_sm'.
-
-    Raises:
-        SystemExit: If the model is not found, with an install hint.
-    """
-    import importlib.util
-
-    if importlib.util.find_spec(model_name.replace("-", "_")) is None:
-        raise SystemExit(f"spaCy model '{model_name}' is not installed.\nRun: python -m spacy download {model_name}")
-
 
 @asynccontextmanager
 async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
     settings = Settings()
-    _require_spacy_model(settings.spacy_model)
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
-    engine = build_analyser_engine(
-        spacy_model=settings.spacy_model,
-        extra_recognisers=build_recognisers(),
-    )
-    audit_hash_key = settings.audit_hash_key.get_secret_value().encode() if settings.audit_hash_key else None
-    if audit_hash_key is None:
-        logger.warning(
-            "PRIVEIL_AUDIT_HASH_KEY is unset; using an ephemeral process-local audit hash key. "
-            "Set PRIVEIL_AUDIT_HASH_KEY to keep hashes stable across restarts."
-        )
-    refiner: Refiner | None = None
-    assessor: Agent[None, AssessmentDecision] | None = None
-    if settings.judge_model or settings.judge_base_url:
-        from priveil.judge.assessor import build_assessor_agent
-        from priveil.judge.refiner import build_refiner
 
-        refiner = build_refiner(settings)
+    # GLiNER2 model (optional — NER recognisers skipped if not installed)
+    gliner_model = None
+    try:
+        from gliner2 import GLiNER2
+        gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
+        logger.info("GLiNER2 model loaded for MCP server.")
+    except ImportError:
+        logger.warning(
+            "gliner2 not installed — NER recognisers disabled. "
+            "Install with: uv sync --extra gliner"
+        )
+    except Exception:
+        # Installed but unloadable (offline, cold HF cache, corrupt download).
+        # Degrade to regex-only rather than failing startup.
+        logger.exception(
+            "GLiNER2 model '%s' failed to load — continuing with regex-only detection; "
+            "PERSON, LOCATION and DATE_TIME will not be detected.",
+            settings.gliner2_model,
+        )
+
+    recognisers = build_recognisers(gliner_model=gliner_model)
+    audit_hash_key = (
+        settings.audit_hash_key.get_secret_value().encode()
+        if settings.audit_hash_key
+        else None
+    )
+    analyser = AsyncAnalyser(recognisers, executor, audit_hash_key=audit_hash_key)
+
+    operator_configs = build_operator_configs(recognisers)
+    pseudonymiser = AsyncPseudonymiser(
+        AnonymizerEngine(),  # type: ignore[no-untyped-call]  # conduit: presidio untyped
+        executor, operator_configs=operator_configs
+    )
+
+    advisor: SpanAdvisor | None = None
+    assessor: Agent[None, AssessmentDecision] | None = None
+    if settings.advisor_model:
+        from priveil.advisor.assessor import build_assessor_agent
+        from priveil.advisor.span_advisor import build_span_advisor
+
+        advisor = build_span_advisor(settings)
         assessor = build_assessor_agent(settings)
 
     state = _State(
-        analyser=AsyncAnalyser(engine, executor, audit_hash_key=audit_hash_key),
-        pseudonymiser=AsyncPseudonymiser(AnonymizerEngine(), executor),  # type: ignore[no-untyped-call]  # conduit: presidio untyped
-        refiner=refiner,
+        analyser=analyser,
+        pseudonymiser=pseudonymiser,
+        advisor=advisor,
         assessor=assessor,
         executor=executor,
     )
@@ -107,17 +113,9 @@ def get_state(ctx: Context) -> _State:  # type: ignore[type-arg]  # conduit: Fas
     """Extract typed engine state from the FastMCP request context.
 
     Args:
-        ctx: The FastMCP request context, injected by the framework.
+        ctx: The FastMCP request context carrying the lifespan state.
 
     Returns:
-        The _State instance yielded by _lifespan.
+        The typed _State dataclass populated during server startup.
     """
-    # FastMCP types lifespan_context as object; cast is safe — _lifespan yields _State.
     return cast(_State, ctx.request_context.lifespan_context)
-
-
-def main() -> None:
-    """Run the priveil MCP server over stdio."""
-    import priveil.mcp.tools  # noqa: F401 — triggers @mcp.tool() registration
-
-    mcp.run()

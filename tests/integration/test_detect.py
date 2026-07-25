@@ -67,10 +67,10 @@ async def test_detect_input_hash_deterministic(detect_client: AsyncClient) -> No
 
 
 async def test_detect_judge_mode_surfaces_fallback_when_unconfigured(detect_client: AsyncClient) -> None:
-    resp = await detect_client.post("/detect", json={"text": "Jane Smith", "mode": "judge"})
+    resp = await detect_client.post("/detect", json={"text": "Jane Smith", "mode": "advisor"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["meta"]["request"]["mode"] == "judge"
+    assert body["meta"]["request"]["mode"] == "advisor"
     assert body["meta"]["response"]["mode"] == "fast"
 
 

@@ -4,7 +4,7 @@ Every response has the shape::
 
     {
       "meta": {
-        "request": { "mode": "judge" },
+        "request": { "mode": "advisor" },
         "response": { "mode": "fast", "input_hash": "hmac-sha256:..." }
       },
       "data": { ... }
@@ -27,7 +27,7 @@ DataT = TypeVar("DataT")
 class RequestMeta(BaseModel, frozen=True):
     """Request-side parameters echoed in every response."""
 
-    mode: Literal["fast", "judge"] | None = None
+    mode: Literal["fast", "advisor"] | None = None
 
 
 class ResponseMeta(BaseModel, frozen=True):
@@ -38,7 +38,7 @@ class ResponseMeta(BaseModel, frozen=True):
     ``advisory_disclaimer`` appears only on ``/assess`` responses.
     """
 
-    mode: Literal["fast", "judge"] | None = None
+    mode: Literal["fast", "advisor"] | None = None
     input_hash: str | None = None
     advisory_disclaimer: str | None = None
 

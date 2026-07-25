@@ -1,4 +1,12 @@
-from presidio_analyzer import Pattern, PatternRecognizer
+"""Australian Company Number (ACN) recogniser."""
+
+from __future__ import annotations
+
+import re
+from typing import ClassVar, Literal
+
+from priveil.domain.entities import EntityType, Sensitivity
+from priveil.recognisers.base import RegexRecogniser
 
 # ASIC weights for the 9-digit ACN checksum (complement-of-10).
 _ACN_WEIGHTS: tuple[int, ...] = (8, 7, 6, 5, 4, 3, 2, 1)
@@ -20,26 +28,31 @@ def _acn_checksum(digits: list[int]) -> bool:
     return check == digits[8]
 
 
-class AUACNRecogniser(PatternRecognizer):
+class AUACNRecogniser(RegexRecogniser):
     """Detect Australian Company Numbers (ACN).
 
     ACN is a 9-digit company identifier — not personal PII.
     """
 
-    PATTERNS = [
-        Pattern("AU_ACN_spaced", r"\b\d{3}[ \t]\d{3}[ \t]\d{3}\b", 0.7),
-        Pattern("AU_ACN_compact", r"\b\d{9}\b", 0.25),
+    entity_type: ClassVar[EntityType] = EntityType.AU_ACN
+    is_pii: ClassVar[bool] = False
+    sensitivity: ClassVar[Sensitivity] = "low"
+    verification: ClassVar[Literal["trust", "advisor"]] = "trust"
+    default_operator: ClassVar[str] = "replace"
+    default_operator_params: ClassVar[dict[str, object]] = {"new_value": "*** *** ***"}
+
+    patterns: ClassVar[list[re.Pattern[str]]] = [
+        re.compile(r"\b\d{3}[ \t]\d{3}[ \t]\d{3}\b"),
+        re.compile(r"\b\d{9}\b"),
     ]
-    CONTEXT = ["acn", "australian company number", "company number", "company no"]
+    context_words: ClassVar[list[str]] = [
+        "acn",
+        "australian company number",
+        "company number",
+        "company no",
+    ]
 
-    def __init__(self) -> None:
-        super().__init__(
-            supported_entity="AU_ACN",
-            patterns=self.PATTERNS,
-            context=self.CONTEXT,
-        )
-
-    def validate_result(self, pattern_text: str) -> bool | None:
+    def _validate(self, text: str) -> bool | None:
         """Return True if ASIC checksum passes, False to invalidate."""
-        digits = [int(c) for c in pattern_text if c.isdigit()]
+        digits = [int(c) for c in text if c.isdigit()]
         return _acn_checksum(digits)

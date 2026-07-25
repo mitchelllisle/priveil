@@ -7,19 +7,19 @@ services:
       - "8000:8000"
     environment:
       PRIVEIL_DEBUG: "false"
-      PRIVEIL_JUDGE_BASE_URL: "http://vllm:8000/v1"
-      PRIVEIL_JUDGE_MODEL: "Qwen/Qwen3-4B-Instruct-2507"
+      PRIVEIL_ADVISOR_BASE_URL: "http://vllm:8000/v1"
+      PRIVEIL_ADVISOR_MODEL: "google/gemma-4-E4B-it"
     depends_on:
       - vllm
 
   vllm:
-    image: vllm/vllm-openai:latest
+    image: vllm/vllm-openai:v0.9.2
     command:
       - "serve"
-      - "Qwen/Qwen3-4B-Instruct-2507"
+      - "google/gemma-4-E4B-it"
       - "--enable-prefix-caching"
       - "--max-model-len"
-      - "4096"
+      - "8192"
       - "--gpu-memory-utilization"
       - "0.9"
     ports:
@@ -29,4 +29,3 @@ services:
     build:
       context: .
       target: test
-    command: ["pytest", "tests/", "-v"]

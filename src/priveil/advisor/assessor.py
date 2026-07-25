@@ -1,13 +1,11 @@
 """LLM assessor for /assess.
 
-Produces a risk profile of a piece of text: sensitivity tier, regulatory
-exposure, and handling guidance. Separate from the internal refiner.
+Wraps the pydantic-ai Agent that produces risk and sensitivity assessments.
 """
 
 from __future__ import annotations
 
 import json
-from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -26,18 +24,12 @@ class AssessmentDecision(BaseModel):
     """Raw structured output from the assessor agent."""
 
     overall_sensitivity: Literal["low", "medium", "high", "critical"] = Field(
-        description="Highest sensitivity tier of any entity present, or 'low' if none"
+        description="Highest sensitivity tier of any detected entity"
     )
-    risk_summary: str = Field(description="One or two sentence plain-English risk summary")
-    categories: list[str] = Field(
-        description="Risk categories present, e.g. ['identity', 'financial', 'health', 'contact']"
-    )
-    regulatory_flags: list[str] = Field(
-        description="Applicable Australian regulatory frameworks, e.g. ['Privacy Act s16B', 'AML-CTF Act s84']"
-    )
-    recommended_handling: str = Field(
-        description="Concrete data handling guidance for this content"
-    )
+    risk_summary: str = Field(description="One-sentence summary of the risk profile")
+    categories: list[str] = Field(description="Applicable risk categories")
+    regulatory_flags: list[str] = Field(description="Applicable regulatory frameworks")
+    recommended_handling: str = Field(description="Actionable handling recommendation")
     reasoning: str = Field(description="Brief explanation of the assessment")
 
 
@@ -51,57 +43,53 @@ ASSESSMENT_ADVISORY_DISCLAIMER = (
 def _build_assessment_prompt(request: AssessmentRequest, detections: DetectionResult) -> str:
     """Build the LLM prompt for the assessor agent.
 
-    Args:
-        request: The assessment request, including text and optional context hint.
-        detections: Pre-computed detections; only PII entities are included in the prompt.
-
-    Returns:
-        Formatted prompt string ready to pass to the assessor agent.
+    Returns a formatted string containing the text, optional context,
+    and a JSON array of detected entities.
     """
     entities_json = json.dumps(
         [
             {
-                "text": e.text,
-                "entity_type": e.entity_type.value,
-                "is_pii": e.is_pii,
-                "sensitivity": e.sensitivity,
+                "type": e.entity_type.value,
+                "span": e.text,
+                "score": round(e.score, 3),
             }
             for e in detections.entities
             if e.is_pii
         ],
         indent=2,
     )
-    context_line = f"\nContext: {request.context}" if request.context else ""
-    return f"""Assess the risk profile of the following text.{context_line}
-
-Text:
-\"\"\"{request.text}\"\"\"
-
-Detected PII entities:
+    context_block = f"\nAdditional context: {request.context}\n" if request.context else ""
+    return f"""Text to assess:
+{request.text}
+{context_block}
+Detected entities:
 {entities_json}"""
 
 
 def _entity_breakdown(detections: DetectionResult) -> list[EntityBreakdown]:
     """Compute entity_breakdown from detections. Pure function — no LLM."""
-    counts: Counter[tuple[str, str]] = Counter(
-        (e.entity_type.value, e.sensitivity)
-        for e in detections.entities
-        if e.is_pii
-    )
+    # Only PII entities appear in the breakdown; sensitivity comes from the entity itself.
+    type_info: dict[str, tuple[str, int]] = {}
+    for entity in detections.entities:
+        if not entity.is_pii:
+            continue
+        et = entity.entity_type.value
+        sensitivity, count = type_info.get(et, (entity.sensitivity, 0))
+        type_info[et] = (sensitivity, count + 1)
     return [
-        EntityBreakdown(entity_type=entity_type, sensitivity=sensitivity, count=count)
-        for (entity_type, sensitivity), count in sorted(counts.items())
+        EntityBreakdown(entity_type=et, sensitivity=sensitivity, count=count)
+        for et, (sensitivity, count) in sorted(type_info.items(), key=lambda x: -x[1][1])
     ]
 
 
 def build_assessor_agent(settings: Settings) -> Agent[None, AssessmentDecision]:
     """Build the assessor agent from application settings."""
-    from priveil.judge.model import build_judge_model
+    from priveil.advisor.model import build_advisor_model
     return Agent(
-        model=build_judge_model(settings),
+        model=build_advisor_model(settings),
         output_type=AssessmentDecision,
         system_prompt=ASSESSOR_SYSTEM_PROMPT,
-        model_settings={"temperature": settings.judge_temperature},
+        model_settings={"temperature": settings.advisor_temperature},
     )
 
 

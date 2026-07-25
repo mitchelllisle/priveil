@@ -7,7 +7,7 @@ No mocks.
 
 from presidio_anonymizer.entities import OperatorConfig
 
-from priveil.domain.entities import ENTITY_CLASSIFICATION, Entity, EntityType
+from priveil.domain.entities import Entity, EntityType
 from priveil.engine.pseudonymiser import (
     AsyncPseudonymiser,
     _build_entity_map,
@@ -18,15 +18,24 @@ from priveil.engine.pseudonymiser import (
 
 
 def _entity(entity_type: EntityType, text: str, start: int = 0) -> Entity:
-    is_pii, sensitivity = ENTITY_CLASSIFICATION[entity_type]
+    # Hardcoded meta — ENTITY_CLASSIFICATION removed; values match recogniser declarations.
+    _META: dict[EntityType, tuple[bool, str]] = {
+        EntityType.AU_TFN: (True, "critical"),
+        EntityType.AU_MEDICARE: (True, "critical"),
+        EntityType.AU_ABN: (False, "low"),
+        EntityType.AU_BSB: (True, "high"),
+        EntityType.EMAIL_ADDRESS: (True, "medium"),
+        EntityType.PERSON: (True, "high"),
+        EntityType.CREDIT_CARD: (True, "critical"),
+        EntityType.LOCATION: (True, "low"),
+        EntityType.PHONE_NUMBER: (True, "medium"),
+        EntityType.DATE_TIME: (False, "low"),
+    }
+    is_pii, sensitivity = _META.get(entity_type, (True, "medium"))
     return Entity(
-        text=text,
-        entity_type=entity_type,
-        start=start,
-        end=start + len(text),
-        score=0.9,
-        is_pii=is_pii,
-        sensitivity=sensitivity,
+        text=text, entity_type=entity_type,
+        start=start, end=start + len(text),
+        score=0.9, is_pii=is_pii, sensitivity=sensitivity,
     )
 
 
@@ -93,7 +102,9 @@ def test_build_entity_map_empty_entities() -> None:
 
 
 def test_build_operators_override_mask_has_required_params() -> None:
-    operators = _build_operators({"AU_TFN": "mask"})
+    from priveil.recognisers.registry import build_operator_configs, build_recognisers
+    base = build_operator_configs(build_recognisers())
+    operators = _build_operators({"AU_TFN": "mask"}, base)
     params = operators["AU_TFN"].params
     assert operators["AU_TFN"].operator_name == "mask"
     assert params["masking_char"] == "*"
@@ -101,7 +112,9 @@ def test_build_operators_override_mask_has_required_params() -> None:
 
 
 def test_build_operators_override_replace_has_new_value() -> None:
-    operators = _build_operators({"PERSON": "replace"})
+    from priveil.recognisers.registry import build_operator_configs, build_recognisers
+    base = build_operator_configs(build_recognisers())
+    operators = _build_operators({"PERSON": "replace"}, base)
     assert operators["PERSON"].operator_name == "replace"
     assert operators["PERSON"].params["new_value"] == "<PERSON>"
 

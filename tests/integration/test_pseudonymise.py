@@ -43,18 +43,18 @@ async def test_pseudonymise_response_shape(pseudonymise_client: AsyncClient) -> 
 
 
 async def test_pseudonymise_operator_override_redact(pseudonymise_client: AsyncClient) -> None:
-    text = "Contact Alice Smith about the loan"
+    text = "Contact billing@acme.com about the loan"
     detect_resp = await pseudonymise_client.post("/detect", json={"text": text})
     anon_resp = await pseudonymise_client.post(
         "/pseudonymise",
         json={
             "text": text,
             "detections": detect_resp.json()["data"],
-            "operator_overrides": {"PERSON": "redact"},
+            "operator_overrides": {"EMAIL_ADDRESS": "redact"},
         },
     )
     assert anon_resp.status_code == 200
-    assert "Alice Smith" not in anon_resp.json()["data"]["anonymised_text"]
+    assert "billing@acme.com" not in anon_resp.json()["data"]["anonymised_text"]
 
 
 async def test_pseudonymise_clean_text_unchanged(pseudonymise_client: AsyncClient) -> None:
@@ -84,8 +84,8 @@ async def test_pseudonymise_empty_text_returns_422(pseudonymise_client: AsyncCli
 async def test_pseudonymise_judge_mode_surfaces_fallback_when_unconfigured(
     pseudonymise_client: AsyncClient,
 ) -> None:
-    resp = await pseudonymise_client.post("/pseudonymise", json={"text": "Jane Smith", "mode": "judge"})
+    resp = await pseudonymise_client.post("/pseudonymise", json={"text": "Jane Smith", "mode": "advisor"})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["meta"]["request"]["mode"] == "judge"
+    assert body["meta"]["request"]["mode"] == "advisor"
     assert body["meta"]["response"]["mode"] == "fast"

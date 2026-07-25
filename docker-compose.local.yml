@@ -1,0 +1,81 @@
+# Local development stack — Ollama (CPU), GLiNER NER, API + MCP.
+#
+# NOTE: Docker on macOS has no GPU passthrough — inference is CPU-only (~3-5 tok/s).
+#       PRIVEIL_ADVISOR_TIMEOUT_MS is raised to 30 s to accommodate this.
+#
+# Quickstart:
+#   1. Pull the model (one-time):
+#        docker compose -f docker-compose.local.yml run --rm ollama-init
+#   2. Start everything:
+#        docker compose -f docker-compose.local.yml up -d
+#
+# Endpoints:
+#   REST API  →  http://localhost:8000
+#   MCP (SSE) →  http://localhost:9000/sse
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # One-shot helper: pull gemma4:e4b if not already cached in the volume.
+  # Run manually: docker compose -f docker-compose.local.yml run --rm ollama-init
+  ollama-init:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["ollama", "pull", "gemma4:e4b"]
+    profiles: ["init"]
+
+  api:
+    build:
+      context: .
+      target: local
+    ports:
+      - "8000:8000"
+    environment:
+      PRIVEIL_DEBUG: "false"
+      PRIVEIL_ADVISOR_BASE_URL: "http://ollama:11434/v1"
+      PRIVEIL_ADVISOR_MODEL: "gemma4:e4b"
+      PRIVEIL_ADVISOR_TIMEOUT_MS: "30000"
+      PRIVEIL_ADVISOR_MAX_TOKENS: "128"
+      PRIVEIL_ADVISOR_SCORE_THRESHOLD: "0.9"
+    command: ["uv", "run", "--no-dev", "python", "-m", "priveil"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  mcp:
+    build:
+      context: .
+      target: local
+    ports:
+      - "9000:9000"
+    environment:
+      PRIVEIL_ADVISOR_BASE_URL: "http://ollama:11434/v1"
+      PRIVEIL_ADVISOR_MODEL: "gemma4:e4b"
+      PRIVEIL_ADVISOR_TIMEOUT_MS: "30000"
+      PRIVEIL_ADVISOR_MAX_TOKENS: "128"
+      PRIVEIL_ADVISOR_SCORE_THRESHOLD: "0.9"
+      # FastMCP transport — SSE so the port can be reached from the host.
+      MCP_TRANSPORT: "sse"
+      FASTMCP_HOST: "0.0.0.0"
+      FASTMCP_PORT: "9000"
+      # Disable DNS-rebinding protection for local dev (no public exposure).
+      FASTMCP_TRANSPORT_SECURITY__ENABLE_DNS_REBINDING_PROTECTION: "false"
+    command: ["uv", "run", "--no-dev", "python", "-m", "priveil.mcp"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+volumes:
+  ollama_data:

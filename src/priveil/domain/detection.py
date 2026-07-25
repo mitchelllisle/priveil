@@ -14,12 +14,12 @@ class DetectionRequest(BaseModel, frozen=True):
     # Only English is supported in the current engine configuration.
     # Expand this Literal when multi-language support is added.
     language: Literal["en"] = Field(default="en", description="ISO 639-1 language code")
-    mode: Literal["fast", "judge"] = Field(
-        default="judge",
+    mode: Literal["fast", "advisor"] = Field(
+        default="advisor",
         description=(
-            "'judge' runs an LLM pass to remove false positives (slower). "
+            "'advisor' runs an LLM pass to remove false positives (slower). "
             "'fast' skips the LLM and returns raw detector output. "
-            "Falls back to 'fast' when no judge model is configured (surfaced via meta.response.mode)."
+            "Falls back to 'fast' when PRIVEIL_ADVISOR_MODEL is unset (surfaced via meta.response.mode)."
         ),
     )
 
@@ -35,7 +35,7 @@ class DetectionData(BaseModel, frozen=True):
     """
 
     entities: tuple[Entity, ...]
-    judge_applied: bool = False
+    advisor_applied: bool = False
 
 
 class DetectionResult(BaseModel, frozen=True):
@@ -47,16 +47,16 @@ class DetectionResult(BaseModel, frozen=True):
 
     entities: tuple[Entity, ...]
     input_hash: str
-    mode_requested: Literal["fast", "judge"] = "fast"
-    mode_used: Literal["fast", "judge"] = "fast"
+    mode_requested: Literal["fast", "advisor"] = "fast"
+    mode_used: Literal["fast", "advisor"] = "fast"
 
     @classmethod
     def from_text(
         cls,
         text: str,
         entities: list[Entity],
-        mode_requested: Literal["fast", "judge"] = "fast",
-        mode_used: Literal["fast", "judge"] = "fast",
+        mode_requested: Literal["fast", "advisor"] = "fast",
+        mode_used: Literal["fast", "advisor"] = "fast",
         hash_key: bytes | None = None,
     ) -> "DetectionResult":
         """Build a DetectionResult with an HMAC-SHA-256 audit hash of the input text.

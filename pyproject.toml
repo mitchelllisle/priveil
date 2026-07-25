@@ -1,6 +1,6 @@
 [project]
 name = "priveil"
-version = "0.3.0"
+version = "0.4.0"
 description = "Pseudonymisation service for reducing PII exposure in text workflows"
 authors = [
     {name = "Mitchell Lisle", email = "m.lisle90@gmail.com"}
@@ -11,19 +11,22 @@ dependencies = [
     "uvicorn[standard]>=0.49.0",
     "pydantic>=2.13.4,<3.0",
     "pydantic-settings>=2.14.2,<3.0",
-    "presidio-analyzer>=2.2.362",
     "presidio-anonymizer>=2.2.362",
-    "spacy>=3.8.14",
     "pydantic-ai>=2.0.0",
+    "openai>=1.0.0",
 ]
 
 [project.optional-dependencies]
+gliner = [
+    "gliner2[local]>=0.1",
+]
 mcp = [
     "mcp>=1.28.0",
 ]
 
 [project.scripts]
-priveil-mcp = "priveil.mcp:main"
+priveil = "priveil.__main__:main"
+priveil-mcp = "priveil.mcp.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -33,12 +36,6 @@ build-backend = "hatchling.build"
 packages = ["src/priveil"]
 
 [dependency-groups]
-# Models are in a separate group so they are included in both dev (uv sync)
-# and production (uv sync --no-dev) builds. Only the dev toolchain is excluded
-# from the runtime image.
-models = [
-    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
-]
 dev = [
     "ruff>=0.15.20",
     "mypy>=2.1.0,<3.0",
@@ -46,7 +43,8 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0,<8",
     "httpx>=0.28.1",
-    "hypothesis>=6.155.7",
+    "pytest-benchmark>=5.1.0",
+    "hypothesis>=6.135.0",
 ]
 docs = [
     "mkdocs>=1.6.1",

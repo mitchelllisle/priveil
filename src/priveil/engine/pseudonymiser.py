@@ -38,18 +38,14 @@ def _override_params(op_type: OperatorType, entity_type: str) -> dict[str, objec
     return {}
 
 
-def _build_operators(overrides: dict[str, OperatorType]) -> dict[str, OperatorConfig]:
-    """Merge default operator configs with per-request overrides.
-
-    Args:
-        overrides: entity_type → operator name, e.g. {'PERSON': 'redact'}.
-
-    Returns:
-        Dict of entity_type → OperatorConfig ready for presidio.
-    """
+def _build_operators(
+    overrides: dict[str, OperatorType],
+    base_configs: dict[str, tuple[str, dict[str, object]]],
+) -> dict[str, OperatorConfig]:
+    """Merge base operator configs with per-request overrides."""
     merged: dict[str, OperatorConfig] = {
         entity_type: OperatorConfig(op_name, params)
-        for entity_type, (op_name, params) in _DEFAULT_OPERATOR_CONFIGS.items()
+        for entity_type, (op_name, params) in base_configs.items()
     }
     for entity_type, op_type in overrides.items():
         merged[entity_type] = OperatorConfig(op_type, _override_params(op_type, entity_type))
@@ -111,9 +107,17 @@ def _build_entity_map(
 class AsyncPseudonymiser:
     """Async wrapper around presidio AnonymizerEngine, offloaded to a thread-pool executor."""
 
-    def __init__(self, engine: AnonymizerEngine, executor: ThreadPoolExecutor) -> None:
+    def __init__(
+        self,
+        engine: AnonymizerEngine,
+        executor: ThreadPoolExecutor,
+        operator_configs: dict[str, tuple[str, dict[str, object]]] | None = None,
+    ) -> None:
         self._engine = engine
         self._executor = executor
+        # Merge provided configs over the hardcoded defaults so new recognisers
+        # override the fallback without losing existing ones.
+        self._operator_configs = {**_DEFAULT_OPERATOR_CONFIGS, **(operator_configs or {})}
 
     async def pseudonymise(self, request: PseudonymisationRequest) -> PseudonymisationData:
         """Pseudonymise text using the entities from a DetectionResult.
@@ -130,7 +134,7 @@ class AsyncPseudonymiser:
         if request.detections is None:
             raise ValueError("detections must be populated before calling pseudonymise()")
 
-        operators = _build_operators(request.operator_overrides)
+        operators = _build_operators(request.operator_overrides, self._operator_configs)
         recognizer_results = [_to_recognizer_result(e) for e in request.detections.entities]
         entity_map = _build_entity_map(request.detections.entities, operators)
 

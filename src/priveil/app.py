@@ -9,9 +9,9 @@ from presidio_anonymizer import AnonymizerEngine
 
 from priveil.api.routes import assess, detect, health, pseudonymise
 from priveil.domain.detection import DetectionRequest
-from priveil.engine.analyser import AsyncAnalyser, build_analyser_engine
+from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
-from priveil.recognisers.registry import build_recognisers
+from priveil.recognisers.registry import build_operator_configs, build_recognisers
 from priveil.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -30,34 +30,66 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Startup / shutdown hook — initialise engines, yield, then clean up."""
     settings: Settings = app.state.settings
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
-    engine = build_analyser_engine(
-        spacy_model=settings.spacy_model,
-        extra_recognisers=build_recognisers(),
-    )
+
+    # ── GLiNER2 model (optional) ──────────────────────────────────────────────
+    gliner_model = None
+    try:
+        from gliner2 import GLiNER2
+        logger.info("Loading GLiNER2 model '%s'…", settings.gliner2_model)
+        gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
+        logger.info("GLiNER2 model loaded.")
+    except ImportError:
+        logger.warning(
+            "gliner2 package not installed — NER recognisers (PERSON, LOCATION, DATE_TIME) "
+            "are disabled. Install with: uv sync --extra gliner"
+        )
+    except Exception:
+        # Installed but unloadable (offline, cold HF cache, corrupt download).
+        # Degrade to regex-only rather than failing startup.
+        logger.exception(
+            "GLiNER2 model '%s' failed to load — continuing with regex-only detection; "
+            "PERSON, LOCATION and DATE_TIME will not be detected.",
+            settings.gliner2_model,
+        )
+
+    # ── Detection engine ──────────────────────────────────────────────────────
+    recognisers = build_recognisers(gliner_model=gliner_model)
     audit_hash_key = settings.audit_hash_key.get_secret_value().encode() if settings.audit_hash_key else None
     if audit_hash_key is None:
         logger.warning(
             "PRIVEIL_AUDIT_HASH_KEY is unset; using an ephemeral process-local audit hash key. "
             "Set PRIVEIL_AUDIT_HASH_KEY to keep hashes stable across restarts."
         )
-    app.state.analyser = AsyncAnalyser(engine, executor, audit_hash_key=audit_hash_key)
-    app.state.pseudonymiser = AsyncPseudonymiser(AnonymizerEngine(), executor)  # type: ignore[no-untyped-call]  # conduit: presidio untyped
+    if getattr(app.state, "analyser", None) is None:
+        app.state.analyser = AsyncAnalyser(recognisers, executor, audit_hash_key=audit_hash_key)
 
-    if settings.judge_model or settings.judge_base_url:
-        from priveil.judge.assessor import build_assessor_agent
-        from priveil.judge.refiner import build_refiner
+    # ── Pseudonymiser — operator configs from recognisers ─────────────────────
+    if getattr(app.state, "pseudonymiser", None) is None:
+        operator_configs = build_operator_configs(recognisers)
+        app.state.pseudonymiser = AsyncPseudonymiser(
+            AnonymizerEngine(),  # type: ignore[no-untyped-call]  # conduit: presidio untyped
+            executor, operator_configs=operator_configs
+        )
 
-        app.state.refiner = build_refiner(settings)
-        app.state.assessor = build_assessor_agent(settings)
-    else:
-        app.state.refiner = None
-        app.state.assessor = None
+    # ── LLM advisor (optional) ────────────────────────────────────────────────
+    if getattr(app.state, "advisor", None) is None:
+        if settings.advisor_model:
+            from priveil.advisor.assessor import build_assessor_agent
+            from priveil.advisor.span_advisor import build_span_advisor
 
-    await app.state.analyser.analyse(DetectionRequest(text="Warmup: Jane Smith, TFN 123 456 782", mode="fast"))
-    if app.state.refiner is not None:
+            app.state.advisor = build_span_advisor(settings)
+            app.state.assessor = build_assessor_agent(settings)
+        else:
+            app.state.advisor = None
+            app.state.assessor = None
+
+    # ── Warmup ────────────────────────────────────────────────────────────────
+    await app.state.analyser.analyse(DetectionRequest(text="Warmup: TFN 123 456 782", mode="fast"))
+    if app.state.advisor is not None:
         with suppress(Exception):
-            warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup Jane Smith", mode="fast"))
-            await app.state.refiner.refine("Warmup Jane Smith", warmup.entities)
+            warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup TFN 123 456 782", mode="fast"))
+            await app.state.advisor.advise("Warmup TFN 123 456 782", warmup.entities)
+
 
     yield
     executor.shutdown(wait=True)
@@ -86,7 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # never hit AttributeError on app.state.<key>.
     app.state.analyser = None
     app.state.pseudonymiser = None
-    app.state.refiner = None
+    app.state.advisor = None
     app.state.assessor = None
 
     app.include_router(health.router)

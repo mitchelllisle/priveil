@@ -1,0 +1,8 @@
+{
+  "name": "financial_report",
+  "description": "Corporate financial report extract — numbers, percentages, dollar figures, but no personal identifiers. Tests false-positive rate on numeric-heavy clean text.",
+  "mode": "fast",
+  "text": "CONDENSED CONSOLIDATED STATEMENT OF FINANCIAL PERFORMANCE\nFor the half-year ended 31 December 2024 (unaudited)\n\nRevenue from continuing operations increased 8.3 percent to $412.7 million, up from $381.2 million in the prior corresponding period. Gross profit margin expanded 120 basis points to 41.5 percent, reflecting improved supply-chain efficiencies and favourable foreign exchange movements.\n\nOperating expenses were $147.3 million, representing 35.7 percent of revenue compared to 37.1 percent in the prior period. EBITDA was $123.6 million, yielding an EBITDA margin of 29.9 percent.\n\nNet profit after tax attributable to members of the parent entity was $74.2 million, an increase of 11.4 percent. Earnings per share (basic) were 34.1 cents, compared with 30.6 cents in the prior half.\n\nThe board has declared an interim dividend of 17.0 cents per share, fully franked, payable to shareholders registered as at the record date. The dividend reinvestment plan will operate at a 1.5 percent discount to the five-day volume-weighted average price.\n\nNet debt at period end was $203.4 million, representing a leverage ratio of 1.6 times EBITDA. The group maintains a $350.0 million revolving credit facility with a syndicate of four major Australian banks, of which $146.6 million was drawn at 31 December 2024.",
+  "expected_entity_types": [],
+  "tags": ["long", "clean", "false-positive-test"]
+}

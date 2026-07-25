@@ -8,12 +8,13 @@ issuing authorities (ATO, ASIC, Services Australia).
 from hypothesis import given
 from hypothesis import strategies as st
 
-from priveil.domain.entities import ENTITY_CLASSIFICATION, EntityType
+from priveil.domain.entities import EntityType
 from priveil.engine.pseudonymiser import _build_operators
 from priveil.recognisers.au_abn import _abn_checksum
 from priveil.recognisers.au_acn import _acn_checksum
 from priveil.recognisers.au_medicare import _medicare_checksum
 from priveil.recognisers.au_tfn import _tfn_checksum
+from priveil.recognisers.registry import build_operator_configs, build_recognisers
 
 # ── TFN ───────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ def test_build_operators_overrides_applied(overrides: dict[str, str]) -> None:
     from priveil.domain.pseudonymisation import OperatorType
 
     typed = {k: cast(OperatorType, v) for k, v in overrides.items()}
-    result = _build_operators(typed)
+    result = _build_operators(typed, build_operator_configs(build_recognisers()))
     for entity_type, op_type in typed.items():
         assert entity_type in result
         assert result[entity_type].operator_name == op_type
@@ -103,22 +104,16 @@ def test_build_operators_never_raises(overrides: dict[str, str]) -> None:
     from priveil.domain.pseudonymisation import OperatorType
 
     typed = {k: cast(OperatorType, v) for k, v in overrides.items()}
-    _build_operators(typed)  # must not raise
+    _build_operators(typed, build_operator_configs(build_recognisers()))  # must not raise
 
 
-# ── ENTITY_CLASSIFICATION completeness ────────────────────────────────────────
+# ── Recogniser completeness ────────────────────────────────────────────────────
 
-def test_entity_classification_covers_all_entity_types() -> None:
-    """Every EntityType member must have a classification entry — no silent KeyError."""
-    for entity_type in EntityType:
-        assert entity_type in ENTITY_CLASSIFICATION, (
-            f"{entity_type} missing from ENTITY_CLASSIFICATION"
-        )
-
-
-@given(st.sampled_from(list(EntityType)))
-def test_entity_classification_sensitivity_is_valid(entity_type: EntityType) -> None:
-    """Every entity type has a valid sensitivity tier."""
-    classification = ENTITY_CLASSIFICATION[entity_type]
-    assert classification.sensitivity in {"low", "medium", "high", "critical"}
-    assert isinstance(classification.is_pii, bool)
+def test_every_regex_recogniser_has_valid_sensitivity() -> None:
+    """Every regex recogniser must declare a valid sensitivity and is_pii."""
+    from priveil.recognisers.base import BaseRecogniser
+    for rec in build_recognisers(gliner_model=None):
+        assert isinstance(rec, BaseRecogniser)
+        assert rec.sensitivity in {"low", "medium", "high", "critical"}
+        assert isinstance(rec.is_pii, bool)
+        assert rec.verification in {"trust", "advisor"}

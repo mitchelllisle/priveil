@@ -1,0 +1,8 @@
+{
+  "name": "single_email",
+  "description": "Minimal input — one email address. Baseline for the shortest possible detection round-trip.",
+  "mode": "fast",
+  "text": "Please direct all invoice enquiries to billing@acme.com.au and we will respond within two business days.",
+  "expected_entity_types": ["EMAIL_ADDRESS"],
+  "tags": ["short", "baseline"]
+}
