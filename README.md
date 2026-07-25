@@ -59,7 +59,7 @@ Returns detected entities with type, character offsets, confidence score, PII cl
 curl -X POST http://localhost:8000/detect \
   -H "Content-Type: application/json" \
   -d '{
-    "text": "Jane Smith TFN 123 456 782, BSB 062-000, jane@westpac.com.au",
+    "text": "Jane Smith TFN 123 456 782, BSB 062-000, jane@bank.com.au",
     "mode": "advisor"
   }'
 ```
@@ -75,7 +75,7 @@ curl -X POST http://localhost:8000/detect \
       { "text": "Jane Smith",          "entity_type": "PERSON",        "is_pii": true, "sensitivity": "high",     "score": 0.85 },
       { "text": "123 456 782",         "entity_type": "AU_TFN",        "is_pii": true, "sensitivity": "critical", "score": 1.0  },
       { "text": "062-000",             "entity_type": "AU_BSB",        "is_pii": true, "sensitivity": "high",     "score": 1.0  },
-      { "text": "jane@westpac.com.au", "entity_type": "EMAIL_ADDRESS", "is_pii": true, "sensitivity": "medium",   "score": 1.0  }
+      { "text": "jane@bank.com.au", "entity_type": "EMAIL_ADDRESS", "is_pii": true, "sensitivity": "medium",   "score": 1.0  }
     ],
     "advisor_applied": false
   }
