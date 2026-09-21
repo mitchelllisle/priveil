@@ -70,3 +70,4 @@ def _build_openai_compatible_model(model_name: str, base_url: str, api_key: str)
         provider=OpenAIProvider(openai_client=client),
     )
 
+
