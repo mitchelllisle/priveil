@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from openai import AsyncOpenAI
     from pydantic_ai.models.openai import OpenAIChatModel
 
     from priveil.settings import Settings
