@@ -86,8 +86,8 @@ curl -X POST http://localhost:8000/detect \
 
 | Value | Behaviour |
 |-------|-----------|
-| `"advisor"` | Runs a span-level LLM pass to remove false positives before returning. Requires `PRIVEIL_ADVISOR_MODEL`. When unconfigured, silently falls back to `"fast"` — `meta.response.mode` will be `"fast"` and a warning is logged. |
-| `"fast"` | Returns raw detector output immediately. No LLM involvement. |
+| `"advisor"` | Runs a span-level verification pass to remove false positives. Uses **laya** (fast, local, no API key) when `PRIVEIL_ADVISOR_BACKEND=laya`, or the pydantic-ai LLM when `PRIVEIL_ADVISOR_BACKEND=pydantic_ai` and `PRIVEIL_ADVISOR_MODEL` is set. Falls back to `"fast"` when neither is configured. |
+| `"fast"` | Returns raw detector output immediately. No ML verification. |
 
 ### `POST /pseudonymise`
 
@@ -187,15 +187,16 @@ curl -X POST http://localhost:8000/assess \
 
 ## Detection Stack
 
-Priveil uses two detection layers:
+Priveil uses three layers:
 
 - **Regex recognisers** — checksum-validated for AU identifiers, pattern-based for email, phone, and credit card. Zero ML dependencies; always active.
-- **GLiNER2** (`gliner2` optional extra) — NER model for `PERSON`, `LOCATION`, and `DATE_TIME`. When the extra is not installed, these entity types are skipped and the service runs in regex-only mode.
+- **GLiNER2** (`gliner` optional extra) — NER model for `PERSON`, `LOCATION`, and `DATE_TIME`. When the extra is not installed, these entity types are skipped and the service runs in regex-only mode.
+- **Laya span advisor** (`laya` optional extra) — non-autoregressive System 1 verification of uncertain spans. Replaces the LLM advisor for `mode="advisor"` with a local encoder that runs in ~33 ms on GPU (no API key, no egress, no cost per call). See [Laya span advisor](#laya-span-advisor) below.
 
-Install with NER support:
+Install with NER + laya support:
 
 ```bash
-uv sync --extra gliner
+uv sync --extra gliner --extra laya
 ```
 
 ---
@@ -223,21 +224,65 @@ Copy `.env.example` to `.env` and set values.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PRIVEIL_ADVISOR_MODEL` | _(unset)_ | LLM for `mode='advisor'` and `/assess`. Format: `provider:model` e.g. `openai:gpt-4o-mini`, `anthropic:claude-haiku-3-5`. Both span advising and assessment go through pydantic-ai, so all providers are supported. |
+| `PRIVEIL_ADVISOR_BACKEND` | `pydantic_ai` | Span advisor backend for `mode="advisor"`: `pydantic_ai` (requires `PRIVEIL_ADVISOR_MODEL`) or `laya` (requires `uv sync --extra laya`). |
+| `PRIVEIL_ADVISOR_MODEL` | _(unset)_ | LLM for `mode='advisor'` (pydantic_ai backend) and `/assess`. Format: `provider:model` e.g. `openai:gpt-4o-mini`, `anthropic:claude-haiku-3-5`. |
 | `PRIVEIL_ADVISOR_BASE_URL` | _(unset)_ | Custom OpenAI-compatible endpoint (vLLM, Ollama, Databricks, Azure AI). When set, `PRIVEIL_ADVISOR_MODEL` is the deployment/model name with no provider prefix. |
 | `PRIVEIL_ADVISOR_API_KEY` | _(unset)_ | API key for the custom endpoint. Defaults to `"local"` when `PRIVEIL_ADVISOR_BASE_URL` is set and this is unset. |
 | `PRIVEIL_ADVISOR_TEMPERATURE` | `0.0` | Sampling temperature (0 = deterministic) |
 | `PRIVEIL_ADVISOR_SCORE_THRESHOLD` | `0.9` | Entities scoring ≥ this bypass advisor verification even on advisor-routed types |
 | `PRIVEIL_ADVISOR_TIMEOUT_MS` | `250` | LLM call timeout; advisor fails open (keeps all spans) on timeout |
+| `PRIVEIL_LAYA_PII_THRESHOLD` | `0.5` | Laya noul probability threshold — spans scoring ≥ this are kept as genuine PII |
+| `PRIVEIL_LAYA_PRELOAD` | `false` | Preload laya checkpoints at startup (recommended in production to avoid first-request latency) |
 | `PRIVEIL_GLINER2_MODEL` | `fastino/gliner2-base-v1` | GLiNER2 model for NER. Only used when the `gliner` extra is installed. |
 | `PRIVEIL_AUDIT_HASH_KEY` | _(unset)_ | Secret key for `input_hash` HMAC generation. Set this for stable audit hashes across restarts. |
-| `PRIVEIL_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool size for CPU-bound recogniser and pseudonymiser work |
+| `PRIVEIL_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool size for CPU-bound recogniser, pseudonymiser, and laya advisor work |
 | `PRIVEIL_DEBUG` | `false` | Enable FastAPI debug mode |
 | `ANTHROPIC_API_KEY` | _(unset)_ | Required when using the `anthropic` provider |
 | `OPENAI_API_KEY` | _(unset)_ | Required when using the `openai` provider |
 
 > [!CAUTION]
 > **LLM egress and regulated data:** `mode="advisor"` and `/assess` send raw, un-redacted text to your configured LLM provider. For regulated data, only use approved providers/configurations (private tenancy, data-retention disabled where available, regional controls, contractual safeguards) or run a self-hosted/local OpenAI-compatible endpoint via `PRIVEIL_ADVISOR_BASE_URL`.
+
+---
+
+## Laya span advisor
+
+[Laya](https://pypi.org/project/laya/) is a non-autoregressive System 1 decision engine — a calibrated encoder that answers typed yes/no questions in a single forward pass. Priveil uses its `noul` question type to verify whether a detected span is genuine PII in context.
+
+**Why this matters:** the pydantic-ai LLM advisor has a 250 ms network timeout and costs money per call. Laya runs locally in ~33 ms on GPU (measured on T4), with no API key and no egress. Multiple spans verify concurrently in the thread pool, so 3 uncertain spans take ~33 ms total instead of 3× the LLM round-trip.
+
+### Install
+
+```bash
+uv sync --extra laya
+```
+
+### Enable
+
+```bash
+PRIVEIL_ADVISOR_BACKEND=laya
+```
+
+With `PRIVEIL_ADVISOR_BACKEND=laya`, `/detect` and `/pseudonymise` use laya for span verification. `PRIVEIL_ADVISOR_MODEL` is no longer required for `mode="advisor"` — only for `/assess`.
+
+### Production setup
+
+```bash
+PRIVEIL_ADVISOR_BACKEND=laya
+PRIVEIL_LAYA_PRELOAD=true   # load all checkpoints at startup — avoids first-request latency
+```
+
+### Perf comparison (simulated, CPU Mac)
+
+| Backend | 1 span | 3 spans | 5 spans | API key required |
+|---------|--------|---------|---------|-----------------|
+| pydantic-ai LLM (150 ms/call) | ~150 ms | ~150 ms | ~150 ms | Yes |
+| laya (33 ms/span, concurrent) | ~33 ms | ~33 ms | ~66 ms | No |
+
+Concurrent spans share the same executor pool, so N spans ≈ ⌈N/workers⌉ × 33 ms on GPU. All-trust-tier inputs bypass laya entirely (0 ms advisor overhead).
+
+> [!NOTE]
+> The pydantic-ai LLM advisor remains available for teams that already have an LLM endpoint and want its contextual reasoning. Set `PRIVEIL_ADVISOR_BACKEND=pydantic_ai` and `PRIVEIL_ADVISOR_MODEL` to use it.
 
 ### TFN scope note
 

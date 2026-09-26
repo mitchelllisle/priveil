@@ -24,6 +24,8 @@ PseudonymiserDep = Annotated[AsyncPseudonymiser, Depends(_get_pseudonymiser)]
 
 
 def _get_advisor(request: Request) -> SpanAdvisor | None:
+    # LayaSpanAdvisor is also accepted here via duck typing — both classes expose
+    # the same advise(text, entities) -> AdvisorResult signature.
     return request.app.state.advisor  # type: ignore[no-any-return]  # conduit: app.state is untyped by FastAPI
 
 
