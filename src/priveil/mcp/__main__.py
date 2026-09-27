@@ -42,7 +42,7 @@ def main() -> None:
     # Import triggers @mcp.tool() registration via priveil.mcp.tools
     import priveil.mcp  # noqa: F401  — side-effect: registers MCP tools
 
-    priveil.mcp.mcp.run(transport=transport)  # type: ignore[arg-type]
+    priveil.mcp.mcp.run(transport=transport)
 
 
 if __name__ == "__main__":

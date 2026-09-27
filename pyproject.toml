@@ -65,6 +65,12 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 
+
+[[tool.mypy.overrides]]
+# The mcp package has no type stubs; @mcp.tool() is an untyped decorator.
+# Suppress cascading errors rather than littering the module with type: ignore.
+module = ["priveil.mcp.*"]
+ignore_errors = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

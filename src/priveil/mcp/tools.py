@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 @mcp.tool()
 async def detect(
     text: str,
-    ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
+    ctx: Context,  # conduit: FastMCP Context not generic at runtime
     mode: Literal["fast", "advisor"] = "advisor",
 ) -> PriveilResponse[DetectionData]:
     """Detect PII entities in text.
@@ -66,7 +66,7 @@ async def detect(
 @mcp.tool()
 async def anonymise(
     text: str,
-    ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
+    ctx: Context,  # conduit: FastMCP Context not generic at runtime
     mode: Literal["fast", "advisor"] = "advisor",
     operator_overrides: dict[str, str] | None = None,
 ) -> PriveilResponse[PseudonymisationData]:
@@ -124,7 +124,7 @@ async def anonymise(
 @mcp.tool()
 async def assess(
     text: str,
-    ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
+    ctx: Context,  # conduit: FastMCP Context not generic at runtime
     context: str | None = None,
 ) -> PriveilResponse[AssessmentData]:
     """Assess the sensitivity and regulatory risk of text.

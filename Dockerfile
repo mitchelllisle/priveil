@@ -19,11 +19,11 @@ RUN uv sync --frozen --no-dev --no-cache
 COPY src/ ./src/
 RUN uv pip install --no-deps . --no-cache-dir
 
-# ── local: gliner + mcp extras for CPU-only local development ─────────────────
-# No NVIDIA GPU required. Provides both the API and MCP server in one image.
+# ── local: laya + mcp extras for CPU-only local development ───────────────────
+# No NVIDIA GPU required. Provides span verification, assessment, and MCP server.
 FROM setup AS local
 
-RUN uv sync --frozen --no-dev --extra gliner --extra mcp --no-cache
+RUN uv sync --frozen --no-dev --extra laya --extra mcp --no-cache
 
 COPY src/ ./src/
 RUN uv pip install --no-deps . --no-cache-dir

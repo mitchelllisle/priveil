@@ -103,6 +103,6 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
 mcp = FastMCP("priveil", lifespan=_lifespan)
 
 
-def get_state(ctx: Context) -> _State:  # type: ignore[type-arg]
+def get_state(ctx: Context) -> _State:
     """Extract typed engine state from the FastMCP request context."""
     return cast(_State, ctx.request_context.lifespan_context)

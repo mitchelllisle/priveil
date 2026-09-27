@@ -16,8 +16,13 @@ from presidio_anonymizer import AnonymizerEngine
 
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
-from priveil.mcp.server import _State
 from priveil.recognisers.registry import build_operator_configs, build_recognisers
+
+try:
+    from priveil.mcp.server import _State
+except ImportError:
+    pytest.skip("mcp extra not installed — run: uv sync --extra mcp", allow_module_level=True)
+
 
 
 @pytest.fixture(scope="session")
