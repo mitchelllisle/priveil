@@ -1,6 +1,7 @@
 """Unit tests for priveil.advisor.assessor — pure functions only."""
 
-from priveil.advisor.assessor import _build_assessment_prompt, _entity_breakdown
+from priveil.advisor.assessor import _build_assessment_prompt
+from priveil.advisor.assessor import entity_breakdown as _entity_breakdown
 from priveil.domain.assessment import AssessmentRequest
 from priveil.domain.detection import DetectionResult
 from priveil.domain.entities import Entity, EntityType
