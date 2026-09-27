@@ -12,7 +12,7 @@ from typing import Literal, cast
 from mcp.server.fastmcp import Context
 
 from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER
-from priveil.advisor.assessor import assess as _assess
+from priveil.advisor.assessor import assess as _llm_assess
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.assessment import AssessmentData, AssessmentRequest
 from priveil.domain.detection import DetectionData, DetectionRequest
@@ -135,24 +135,49 @@ async def assess(
 
     Returns:
         PriveilResponse with meta (input_hash and advisory_disclaimer) and
-        data containing sensitivity tier, risk categories, applicable Australian
-        regulatory frameworks, recommended handling guidance, and a per-entity breakdown.
+        data containing sensitivity tier, risk categories, regulatory flags,
+        recommended handling, and a per-entity breakdown.
+        When laya is installed, sensitivity and categories come from laya typed
+        decisions; advisory text is rule-derived (no LLM, no API key required).
 
     Raises:
-        ValueError: If PRIVEIL_ADVISOR_MODEL is not configured.
+        ValueError: If neither laya nor PRIVEIL_ADVISOR_MODEL is configured.
     """
+    _LAYA_DISCLAIMER = (
+        "Sensitivity and categories derived from laya typed decisions; "
+        "regulatory flags and handling guidance are rule-derived, not LLM-generated."
+    )
     state = get_state(ctx)
-    if state.assessor is None:
-        raise ValueError("assess requires PRIVEIL_ADVISOR_MODEL to be configured.")
     detections = await state.analyser.analyse(DetectionRequest(text=text))
-    data = await _assess(AssessmentRequest(text=text, context=context), detections, state.assessor)
-    return PriveilResponse(
-        meta=Meta(
-            request=RequestMeta(),
-            response=ResponseMeta(
-                input_hash=detections.input_hash,
-                advisory_disclaimer=ASSESSMENT_ADVISORY_DISCLAIMER,
+
+    # Prefer laya assessor (fast, local, no API key)
+    if state.laya_assessor is not None:
+        data = await state.laya_assessor.assess(text, detections, context=context)
+        return PriveilResponse(
+            meta=Meta(
+                request=RequestMeta(),
+                response=ResponseMeta(
+                    input_hash=detections.input_hash,
+                    advisory_disclaimer=_LAYA_DISCLAIMER,
+                ),
             ),
-        ),
-        data=data,
+            data=data,
+        )
+
+    # Fall back to LLM assessor
+    if state.assessor is not None:
+        data = await _llm_assess(AssessmentRequest(text=text, context=context), detections, state.assessor)
+        return PriveilResponse(
+            meta=Meta(
+                request=RequestMeta(),
+                response=ResponseMeta(
+                    input_hash=detections.input_hash,
+                    advisory_disclaimer=ASSESSMENT_ADVISORY_DISCLAIMER,
+                ),
+            ),
+            data=data,
+        )
+
+    raise ValueError(
+        "assess requires either laya (uv sync --extra laya) or PRIVEIL_ADVISOR_MODEL to be configured."
     )
