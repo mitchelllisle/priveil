@@ -39,9 +39,10 @@ class Settings(BaseSettings):
     advisor_timeout_ms: int = 250
     advisor_max_tokens: int = 64
     # ── Laya span advisor ─────────────────────────────────────────────────────
-    # Backend for mode='advisor' span verification: "pydantic_ai" | "laya"
-    # "pydantic_ai" requires PRIVEIL_ADVISOR_MODEL; "laya" requires laya package installed.
-    advisor_backend: str = "pydantic_ai"
+    # Backend for mode='advisor' span verification: "auto" | "laya" | "pydantic_ai"
+    # "auto" (default): uses laya if the package is installed, pydantic_ai otherwise.
+    # "laya" requires laya package (uv sync --extra laya); "pydantic_ai" requires PRIVEIL_ADVISOR_MODEL.
+    advisor_backend: str = "auto"
     # Probability threshold for laya noul answer — spans scoring >= this are kept.
     laya_pii_threshold: float = 0.5
     # Preload laya checkpoints at startup (vs lazy on first request). Set True in production.
