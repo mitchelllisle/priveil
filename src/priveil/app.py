@@ -73,25 +73,47 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # ── Span advisor (LLM or Laya) ─────────────────────────────────────────────
     if getattr(app.state, "advisor", None) is None:
-        if settings.advisor_backend == "laya":
+        backend = settings.advisor_backend
+        if backend in ("laya", "auto"):
             try:
                 from priveil.advisor.laya_advisor import build_laya_advisor
 
                 app.state.advisor = build_laya_advisor(settings, executor)
+                logger.info("Laya span advisor active (backend=%s).", backend)
             except ImportError:
-                logger.error(
-                    "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed. "
-                    "Install with: uv sync --extra laya"
-                )
+                if backend == "laya":
+                    logger.error(
+                        "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed. "
+                        "Install with: uv sync --extra laya"
+                    )
+                    app.state.advisor = None
+                else:
+                    # auto: laya not installed — fall through to pydantic_ai
+                    logger.info("laya not installed; advisor_backend=auto falling back to pydantic_ai.")
+                    app.state.advisor = None
+
+        if app.state.advisor is None and backend != "laya":
+            # pydantic_ai path (explicit or auto fallback when laya not installed)
+            if settings.advisor_model:
+                from priveil.advisor.span_advisor import build_span_advisor
+
+                app.state.advisor = build_span_advisor(settings)
+                logger.info("pydantic-ai span advisor active.")
+            else:
+                if backend == "pydantic_ai":
+                    logger.warning(
+                        "PRIVEIL_ADVISOR_BACKEND=pydantic_ai but PRIVEIL_ADVISOR_MODEL is unset; "
+                        "mode='advisor' will fall back to 'fast'."
+                    )
+                elif backend == "auto":
+                    logger.info(
+                        "No advisor configured (laya not installed, PRIVEIL_ADVISOR_MODEL unset); "
+                        "mode='advisor' falls back to 'fast'. "
+                        "Install laya (uv sync --extra laya) to enable zero-config span advisor."
+                    )
                 app.state.advisor = None
-        elif settings.advisor_model:
-            from priveil.advisor.span_advisor import build_span_advisor
 
-            app.state.advisor = build_span_advisor(settings)
-        else:
-            app.state.advisor = None
-
-        # assessor always needs the LLM model regardless of advisor_backend
+        # assessor always requires the LLM model regardless of advisor_backend
         if getattr(app.state, "assessor", None) is None:
             if settings.advisor_model:
                 from priveil.advisor.assessor import build_assessor_agent
