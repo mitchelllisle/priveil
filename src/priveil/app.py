@@ -113,8 +113,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     )
                 app.state.advisor = None
 
-        # assessor always requires the LLM model regardless of advisor_backend
-        if getattr(app.state, "assessor", None) is None:
+        # ── Assessor: LLM or Laya ─────────────────────────────────────────────
+        ab = settings.assess_backend
+        if getattr(app.state, "laya_assessor", None) is None and ab in ("laya", "auto"):
+            try:
+                from priveil.advisor.laya_assessor import build_laya_assessor
+
+                app.state.laya_assessor = build_laya_assessor(executor, preload=settings.laya_preload)
+                logger.info("Laya assessor active (assess_backend=%s).", ab)
+            except ImportError:
+                if ab == "laya":
+                    logger.error(
+                        "PRIVEIL_ASSESS_BACKEND=laya but laya package is not installed. "
+                        "Install with: uv sync --extra laya"
+                    )
+                else:
+                    logger.info("laya not installed; assess_backend=auto will use llm if configured.")
+                app.state.laya_assessor = None
+
+        if getattr(app.state, "assessor", None) is None and ab != "laya":
             if settings.advisor_model:
                 from priveil.advisor.assessor import build_assessor_agent
 
@@ -159,6 +176,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.pseudonymiser = None
     app.state.advisor = None
     app.state.assessor = None
+    app.state.laya_assessor = None
 
     app.include_router(health.router)
     app.include_router(detect.router, prefix="/detect", tags=["detection"])

@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     laya_pii_threshold: float = 0.5
     # Preload laya checkpoints at startup (vs lazy on first request). Set True in production.
     laya_preload: bool = False
+    # ── Laya assessor ─────────────────────────────────────────────────────────
+    # Backend for /assess: "auto" | "laya" | "llm"
+    # "auto" (default): uses laya if installed, llm if PRIVEIL_ADVISOR_MODEL set, else 503.
+    # "laya" requires laya package and returns rule-derived fields (no text generation).
+    # "llm" requires PRIVEIL_ADVISOR_MODEL; returns full LLM-generated advisory text.
+    assess_backend: str = "auto"
     # ── LLM judge ─────────────────────────────────────────────────────────────
     # Set PRIVEIL_JUDGE_MODEL to enable span-verdict refinement.
     # When unset: mode='judge' falls back to 'fast'.

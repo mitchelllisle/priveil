@@ -146,7 +146,15 @@ Available operators: `replace`, `mask`, `redact`, `hash`.
 
 ### `POST /assess`
 
-Produces a risk profile of a piece of text — overall sensitivity tier, applicable Australian regulatory frameworks, and handling guidance. Requires `PRIVEIL_ADVISOR_MODEL`.
+Produces a risk profile of a piece of text — overall sensitivity tier, applicable Australian regulatory frameworks, and handling guidance.
+
+**Backend selection** (`PRIVEIL_ASSESS_BACKEND`):
+
+| Value | Behaviour | API key |
+|-------|-----------|---------|
+| `auto` (default) | laya if installed, LLM if `PRIVEIL_ADVISOR_MODEL` set, else 503 | Optional |
+| `laya` | Laya typed decisions + rule-derived advisory fields. Fast, local, no egress. | No |
+| `llm` | Full LLM-generated risk summary, regulatory flags, reasoning | Yes |
 
 Pass pre-computed detections to avoid running the detector again.
 
@@ -233,6 +241,7 @@ Copy `.env.example` to `.env` and set values.
 | `PRIVEIL_ADVISOR_TIMEOUT_MS` | `250` | LLM call timeout; advisor fails open (keeps all spans) on timeout |
 | `PRIVEIL_LAYA_PII_THRESHOLD` | `0.5` | Laya noul probability threshold — spans scoring ≥ this are kept as genuine PII |
 | `PRIVEIL_LAYA_PRELOAD` | `false` | Preload laya checkpoints at startup (recommended in production to avoid first-request latency) |
+| `PRIVEIL_ASSESS_BACKEND` | `auto` | Assessor backend for `/assess`: `auto` (laya if installed, then llm, then 503), `laya` (fast, local), or `llm` (requires `PRIVEIL_ADVISOR_MODEL`). |
 | `PRIVEIL_GLINER2_MODEL` | `fastino/gliner2-base-v1` | GLiNER2 model for NER. Only used when the `gliner` extra is installed. |
 | `PRIVEIL_AUDIT_HASH_KEY` | _(unset)_ | Secret key for `input_hash` HMAC generation. Set this for stable audit hashes across restarts. |
 | `PRIVEIL_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool size for CPU-bound recogniser, pseudonymiser, and laya advisor work |
@@ -241,7 +250,7 @@ Copy `.env.example` to `.env` and set values.
 | `OPENAI_API_KEY` | _(unset)_ | Required when using the `openai` provider |
 
 > [!CAUTION]
-> **LLM egress and regulated data:** `mode="advisor"` and `/assess` send raw, un-redacted text to your configured LLM provider. For regulated data, only use approved providers/configurations (private tenancy, data-retention disabled where available, regional controls, contractual safeguards) or run a self-hosted/local OpenAI-compatible endpoint via `PRIVEIL_ADVISOR_BASE_URL`.
+> **LLM egress and regulated data:** `mode="advisor"` (pydantic_ai backend) and `/assess` (llm backend) send raw, un-redacted text to your configured LLM provider. For regulated data, only use approved providers/configurations (private tenancy, data-retention disabled where available, regional controls, contractual safeguards) or run a self-hosted/local OpenAI-compatible endpoint via `PRIVEIL_ADVISOR_BASE_URL`. **Laya backends send no data externally.**
 
 ---
 
@@ -266,7 +275,7 @@ uv sync --extra laya
 PRIVEIL_ADVISOR_BACKEND=laya
 ```
 
-With `advisor_backend=auto` (the default), installing `laya` is sufficient — `mode="advisor"` activates automatically without setting `PRIVEIL_ADVISOR_MODEL`. `/assess` still requires `PRIVEIL_ADVISOR_MODEL` (text generation is outside laya's scope).
+With `advisor_backend=auto` (the default), installing `laya` is sufficient — `mode="advisor"` activates automatically without `PRIVEIL_ADVISOR_MODEL`. Same for `/assess`: `PRIVEIL_ASSESS_BACKEND=auto` uses laya for assess without any API key.
 
 ### Production setup
 
