@@ -61,10 +61,11 @@ async def test_assess_with_pre_computed_detections(assess_client: AsyncClient) -
 
 
 async def test_assess_no_assessor_returns_503(detect_client: AsyncClient) -> None:
-    """Client without assessor injected should return 503."""
+    """Client without any assessor injected should return 503."""
     resp = await detect_client.post("/assess", json={"text": "some text"})
     assert resp.status_code == 503
-    assert "PRIVEIL_ADVISOR_MODEL" in resp.json()["detail"]
+    detail = resp.json()["detail"]
+    assert "laya" in detail.lower() or "PRIVEIL_ADVISOR_MODEL" in detail
 
 
 async def test_assess_empty_text_returns_422(assess_client: AsyncClient) -> None:

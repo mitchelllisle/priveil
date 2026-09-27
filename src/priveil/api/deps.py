@@ -1,9 +1,10 @@
-from typing import Annotated, Any, cast
+from typing import Annotated, cast
 
 from fastapi import Depends, Request
 from pydantic_ai import Agent
 
 from priveil.advisor.assessor import AssessmentDecision
+from priveil.advisor.laya_assessor import LayaAssessor
 from priveil.advisor.span_advisor import AdvisorProtocol
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
@@ -44,9 +45,9 @@ def _get_assessor(request: Request) -> "Agent[None, AssessmentDecision] | None":
 AssessorDep = Annotated["Agent[None, AssessmentDecision] | None", Depends(_get_assessor)]
 
 
-def _get_laya_assessor(request: Request) -> "Any":
-    return getattr(request.app.state, "laya_assessor", None)
+def _get_laya_assessor(request: Request) -> LayaAssessor | None:
+    return getattr(request.app.state, "laya_assessor", None)  # type: ignore[no-any-return]
 
 
 # Optional — None when laya is not installed or assess_backend != laya/auto.
-LayaAssessorDep = Annotated["Any", Depends(_get_laya_assessor)]
+LayaAssessorDep = Annotated[LayaAssessor | None, Depends(_get_laya_assessor)]

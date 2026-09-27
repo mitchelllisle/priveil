@@ -132,3 +132,34 @@ async def assess_client(
     app.state.assessor = assessor_agent
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
+
+@pytest.fixture
+async def laya_assess_client(
+    test_settings: Settings,
+    analyser: AsyncAnalyser,
+) -> AsyncGenerator[AsyncClient, None]:
+    """Analyser + mock LayaAssessor — tests the laya-first dispatch path."""
+    from concurrent.futures import ThreadPoolExecutor
+    from unittest.mock import MagicMock
+
+    from priveil.advisor.laya_assessor import LayaAssessor
+
+    router = MagicMock()
+    router.predict.return_value = {
+        "answers": {
+            "overall_sensitivity": {"choice": "medium"},
+            "is_financial": {"noul": 0.8},
+            "is_identity": {"noul": 0.3},
+            "is_medical": {"noul": 0.1},
+            "is_employment": {"noul": 0.1},
+        }
+    }
+    executor = ThreadPoolExecutor(max_workers=1)
+    laya_assessor = LayaAssessor(router=router, executor=executor)
+
+    app = create_app(settings=test_settings)
+    app.state.analyser = analyser
+    app.state.laya_assessor = laya_assessor
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c
+    executor.shutdown(wait=False)

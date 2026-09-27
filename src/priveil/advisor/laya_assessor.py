@@ -71,7 +71,6 @@ _ASSESS_QUESTIONS: dict[str, Any] = {
 
 # ── rule-based helpers ────────────────────────────────────────────────────────
 
-_SENSITIVITY_ORDER: dict[str, int] = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 
 _REGULATORY_FLAGS: dict[str, list[str]] = {
     "financial": ["Privacy Act s16B", "ATO data standards"],
@@ -199,7 +198,7 @@ class LayaAssessor:
         Returns:
             AssessmentData with sensitivity, categories, and derived advisory fields.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         state = {"text": text, "entities": [e.entity_type.value for e in detections.entities if e.is_pii]}
 
         try:
