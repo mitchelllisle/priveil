@@ -11,8 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from priveil.advisor.laya_advisor import LayaSpanAdvisor
-from priveil.advisor.span_advisor import AdvisorResult
+from priveil.advisor.laya_advisor import AdvisorResult, LayaSpanAdvisor
 from priveil.domain.entities import Entity, EntityType
 from priveil.settings import Settings
 

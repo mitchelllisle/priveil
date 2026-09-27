@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER, assess
-from priveil.api.deps import AnalyserDep, AssessorDep, LayaAssessorDep
+from priveil.api.deps import AnalyserDep, LayaAssessorDep
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.assessment import AssessmentData, AssessmentRequest
 from priveil.domain.detection import DetectionRequest
@@ -19,7 +18,6 @@ _LAYA_ADVISORY_DISCLAIMER = (
 async def assess_content(
     request: AssessmentRequest,
     analyser: AnalyserDep,
-    assessor: AssessorDep,
     laya_assessor: LayaAssessorDep,
 ) -> PriveilResponse[AssessmentData]:
     """Assess the risk profile of a piece of text.
@@ -32,8 +30,7 @@ async def assess_content(
 
     - ``laya`` (fast, local, no API key) — sensitivity via laya typed decisions;
       regulatory/handling fields are rule-derived. Requires ``uv sync --extra laya``.
-    - ``llm`` (full advisory text) — requires ``PRIVEIL_ADVISOR_MODEL``.
-    - ``auto`` (default) — laya if available, llm if configured, else 503.
+    - ``auto`` (default) — laya if available, else 503.
 
     Pass ``body["data"]`` from a prior ``/detect`` response as ``detections``.
     """
@@ -42,7 +39,6 @@ async def assess_content(
     else:
         detections = await analyser.analyse(DetectionRequest(text=request.text))
 
-    # Prefer laya assessor (fast, local, no API key)
     if laya_assessor is not None:
         data = await laya_assessor.assess(request.text, detections, context=request.context)
         return PriveilResponse(
@@ -51,20 +47,6 @@ async def assess_content(
                 response=ResponseMeta(
                     input_hash=detections.input_hash,
                     advisory_disclaimer=_LAYA_ADVISORY_DISCLAIMER,
-                ),
-            ),
-            data=data,
-        )
-
-    # Fall back to LLM assessor
-    if assessor is not None:
-        data = await assess(request, detections, assessor)
-        return PriveilResponse(
-            meta=Meta(
-                request=RequestMeta(),
-                response=ResponseMeta(
-                    input_hash=detections.input_hash,
-                    advisory_disclaimer=ASSESSMENT_ADVISORY_DISCLAIMER,
                 ),
             ),
             data=data,

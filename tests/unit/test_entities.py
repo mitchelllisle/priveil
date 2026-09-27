@@ -66,7 +66,7 @@ def test_person_is_high_sensitivity_pii() -> None:
     assert e.sensitivity == "high"
 
 
-@pytest.mark.parametrize("recogniser", build_recognisers(gliner_model=None))
+@pytest.mark.parametrize("recogniser", build_recognisers())
 def test_recogniser_sensitivity_is_valid_literal(recogniser: object) -> None:
     """Every recogniser declares a valid sensitivity tier and is_pii bool."""
     from priveil.recognisers.base import BaseRecogniser

@@ -3,15 +3,15 @@
 from httpx import AsyncClient
 
 
-async def test_assess_returns_200(assess_client: AsyncClient) -> None:
-    resp = await assess_client.post(
+async def test_assess_returns_200(laya_assess_client: AsyncClient) -> None:
+    resp = await laya_assess_client.post(
         "/assess", json={"text": "My TFN is 123 456 782"}
     )
     assert resp.status_code == 200
 
 
-async def test_assess_response_shape(assess_client: AsyncClient) -> None:
-    resp = await assess_client.post(
+async def test_assess_response_shape(laya_assess_client: AsyncClient) -> None:
+    resp = await laya_assess_client.post(
         "/assess", json={"text": "Contact jane@example.com"}
     )
     assert resp.status_code == 200
@@ -35,8 +35,8 @@ async def test_assess_response_shape(assess_client: AsyncClient) -> None:
     assert "advisory_disclaimer" not in data
 
 
-async def test_assess_with_context(assess_client: AsyncClient) -> None:
-    resp = await assess_client.post(
+async def test_assess_with_context(laya_assess_client: AsyncClient) -> None:
+    resp = await laya_assess_client.post(
         "/assess",
         json={
             "text": "TFN 123 456 782 BSB 062-000",
@@ -46,13 +46,13 @@ async def test_assess_with_context(assess_client: AsyncClient) -> None:
     assert resp.status_code == 200
 
 
-async def test_assess_with_pre_computed_detections(assess_client: AsyncClient) -> None:
+async def test_assess_with_pre_computed_detections(laya_assess_client: AsyncClient) -> None:
     """Pre-computed detections (body['data']) should skip re-detection."""
     text = "jane@example.com"
-    detect_resp = await assess_client.post("/detect", json={"text": text})
+    detect_resp = await laya_assess_client.post("/detect", json={"text": text})
     assert detect_resp.status_code == 200
 
-    assess_resp = await assess_client.post(
+    assess_resp = await laya_assess_client.post(
         "/assess",
         json={"text": text, "detections": detect_resp.json()["data"]},
     )
@@ -68,24 +68,24 @@ async def test_assess_no_assessor_returns_503(detect_client: AsyncClient) -> Non
     assert "laya" in detail.lower() or "PRIVEIL_ADVISOR_MODEL" in detail
 
 
-async def test_assess_empty_text_returns_422(assess_client: AsyncClient) -> None:
-    resp = await assess_client.post("/assess", json={"text": ""})
+async def test_assess_empty_text_returns_422(laya_assess_client: AsyncClient) -> None:
+    resp = await laya_assess_client.post("/assess", json={"text": ""})
     assert resp.status_code == 422
 
 
-async def test_assess_entity_breakdown_populated(assess_client: AsyncClient) -> None:
+async def test_assess_entity_breakdown_populated(laya_assess_client: AsyncClient) -> None:
     """entity_breakdown is computed from detections, not from the LLM."""
     text = "My name is Jane Smith and my TFN is 123 456 782"
-    resp = await assess_client.post("/assess", json={"text": text})
+    resp = await laya_assess_client.post("/assess", json={"text": text})
     assert resp.status_code == 200
     breakdown = resp.json()["data"]["entity_breakdown"]
     types = {b["entity_type"] for b in breakdown}
     assert "AU_TFN" in types
 
 
-async def test_assess_clean_text_low_sensitivity(assess_client: AsyncClient) -> None:
-    """No PII → breakdown empty; LLM (TestModel) returns its default sensitivity."""
-    resp = await assess_client.post(
+async def test_assess_clean_text_low_sensitivity(laya_assess_client: AsyncClient) -> None:
+    """No PII → breakdown empty; laya returns its default sensitivity."""
+    resp = await laya_assess_client.post(
         "/assess", json={"text": "Fixed home loan repayments are calculated monthly."}
     )
     assert resp.status_code == 200

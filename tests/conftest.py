@@ -1,13 +1,11 @@
 from collections.abc import AsyncGenerator, Generator
 from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from pydantic_ai import Agent
-from pydantic_ai.models.test import TestModel
 
-from priveil.advisor.assessor import AssessmentDecision
-from priveil.advisor.span_advisor import AdvisorResult, SpanAdvisor
+from priveil.advisor.laya_advisor import AdvisorProtocol, AdvisorResult
 from priveil.app import create_app
 from priveil.domain.entities import Entity
 from priveil.engine.analyser import AsyncAnalyser
@@ -28,7 +26,7 @@ def test_settings() -> Settings:
 def analyser() -> Generator[AsyncAnalyser, None, None]:
     """Build the detection engine once per session — regex-only (no GLiNER2 in tests)."""
     executor = ThreadPoolExecutor(max_workers=2)
-    recognisers = build_recognisers(gliner_model=None)
+    recognisers = build_recognisers()
     yield AsyncAnalyser(recognisers, executor)
     executor.shutdown(wait=True)
 
@@ -39,35 +37,21 @@ def pseudonymiser() -> Generator[AsyncPseudonymiser, None, None]:
     from presidio_anonymizer import AnonymizerEngine
 
     executor = ThreadPoolExecutor(max_workers=2)
-    recognisers = build_recognisers(gliner_model=None)
+    recognisers = build_recognisers()
     operator_configs = build_operator_configs(recognisers)
     yield AsyncPseudonymiser(AnonymizerEngine(), executor, operator_configs=operator_configs)
     executor.shutdown(wait=True)
 
 
-class _PassThroughAdvisor(SpanAdvisor):
-    """Test double that bypasses real LLM calls.
-
-    Uses object.__init__ to avoid requiring a real AsyncOpenAI client and
-    Settings, while still satisfying isinstance checks against SpanAdvisor.
-    """
-    def __init__(self) -> None:
-        object.__init__(self)
-
-    async def advise(self, text: str, entities: tuple[Entity, ...]) -> AdvisorResult:
+@pytest.fixture(scope="session")
+def advisor_mock() -> AdvisorProtocol:
+    """Pass-through advisor mock — satisfies AdvisorProtocol, applies no real verification."""
+    async def _advise(text: str, entities: tuple[Entity, ...]) -> AdvisorResult:
         return AdvisorResult(entities=entities, advisor_applied=True)
 
-
-@pytest.fixture(scope="session")
-def advisor_agent() -> SpanAdvisor:
-    """Pass-through advisor for tests that exercise advisor-mode wiring."""
-    return _PassThroughAdvisor()
-
-
-@pytest.fixture(scope="session")
-def assessor_agent() -> Agent[None, AssessmentDecision]:
-    """TestModel-backed assessor — deterministic, no real LLM calls."""
-    return Agent(TestModel(), output_type=AssessmentDecision, system_prompt="test")
+    mock = MagicMock(spec=AdvisorProtocol)
+    mock.advise = AsyncMock(side_effect=_advise)
+    return mock  # type: ignore[return-value]
 
 
 # ── Clients ───────────────────────────────────────────────────────────────────
@@ -109,29 +93,16 @@ async def advised_client(
     test_settings: Settings,
     analyser: AsyncAnalyser,
     pseudonymiser: AsyncPseudonymiser,
-    advisor_agent: SpanAdvisor,
+    advisor_mock: AdvisorProtocol,
 ) -> AsyncGenerator[AsyncClient, None]:
     """Analyser + pseudonymiser + pass-through advisor — tests the advisor path."""
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
     app.state.pseudonymiser = pseudonymiser
-    app.state.advisor = advisor_agent
+    app.state.advisor = advisor_mock
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 
-
-@pytest.fixture
-async def assess_client(
-    test_settings: Settings,
-    analyser: AsyncAnalyser,
-    assessor_agent: Agent[None, AssessmentDecision],
-) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser + TestModel assessor — for /assess endpoint tests."""
-    app = create_app(settings=test_settings)
-    app.state.analyser = analyser
-    app.state.assessor = assessor_agent
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        yield c
 
 @pytest.fixture
 async def laya_assess_client(
@@ -140,7 +111,6 @@ async def laya_assess_client(
 ) -> AsyncGenerator[AsyncClient, None]:
     """Analyser + mock LayaAssessor — tests the laya-first dispatch path."""
     from concurrent.futures import ThreadPoolExecutor
-    from unittest.mock import MagicMock
 
     from priveil.advisor.laya_assessor import LayaAssessor
 

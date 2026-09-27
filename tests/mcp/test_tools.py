@@ -78,6 +78,6 @@ async def test_anonymise_entity_map_populated(engine_state: _State) -> None:
     assert "billing@acme.com" in result.data.entity_map
 
 
-async def test_assess_without_advisor_model_raises(engine_state: _State) -> None:
-    with pytest.raises(ValueError, match="PRIVEIL_ADVISOR_MODEL"):
+async def test_assess_without_laya_raises(engine_state: _State) -> None:
+    with pytest.raises(ValueError, match="laya"):
         await assess("jane@example.com TFN 123 456 782", ctx=make_ctx(engine_state))

@@ -11,15 +11,29 @@ from __future__ import annotations
 import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
-from priveil.advisor.span_advisor import AdvisorResult
+from pydantic import BaseModel
+
 from priveil.domain.entities import Entity
 
 if TYPE_CHECKING:
     from priveil.settings import Settings
 
 logger = logging.getLogger(__name__)
+
+
+class AdvisorResult(BaseModel, frozen=True):
+    """Result of a span-verdict advise pass."""
+
+    entities: tuple[Entity, ...]
+    advisor_applied: bool
+
+
+class AdvisorProtocol(Protocol):
+    """Structural protocol for span verification advisors (LayaSpanAdvisor satisfies this)."""
+
+    async def advise(self, text: str, entities: tuple[Entity, ...]) -> AdvisorResult: ...
 
 _VERIFY_QUESTION: dict[str, Any] = {
     "is_genuine_pii": {
