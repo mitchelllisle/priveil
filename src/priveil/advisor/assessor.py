@@ -66,7 +66,7 @@ Detected entities:
 {entities_json}"""
 
 
-def _entity_breakdown(detections: DetectionResult) -> list[EntityBreakdown]:
+def entity_breakdown(detections: DetectionResult) -> list[EntityBreakdown]:
     """Compute entity_breakdown from detections. Pure function — no LLM."""
     # Only PII entities appear in the breakdown; sensitivity comes from the entity itself.
     type_info: dict[str, tuple[str, int]] = {}
@@ -119,6 +119,6 @@ async def assess(
         categories=decision.categories,
         regulatory_flags=decision.regulatory_flags,
         recommended_handling=decision.recommended_handling,
-        entity_breakdown=_entity_breakdown(detections),
+        entity_breakdown=entity_breakdown(detections),
         reasoning=decision.reasoning,
     )

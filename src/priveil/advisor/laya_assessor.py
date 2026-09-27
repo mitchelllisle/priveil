@@ -17,7 +17,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Literal
 
-from priveil.advisor.assessor import _entity_breakdown
+from priveil.advisor.assessor import entity_breakdown
 from priveil.domain.assessment import AssessmentData
 from priveil.domain.detection import DetectionResult
 
@@ -150,7 +150,7 @@ def _derive_assess_result(
     if not reg_flags and sensitivity in ("high", "critical"):
         reg_flags = ["Privacy Act 1988 (Cth)"]
 
-    entity_breakdown = _entity_breakdown(detections)
+    breakdown = entity_breakdown(detections)
     risk_summary = _build_risk_summary(sensitivity, categories, pii_types)
     recommended_handling = _HANDLING_BY_SENSITIVITY[sensitivity]
     reasoning = (
@@ -165,7 +165,7 @@ def _derive_assess_result(
         categories=categories,
         regulatory_flags=reg_flags,
         recommended_handling=recommended_handling,
-        entity_breakdown=entity_breakdown,
+        entity_breakdown=breakdown,
         reasoning=reasoning,
     )
 
@@ -188,18 +188,25 @@ class LayaAssessor:
         self,
         text: str,
         detections: DetectionResult,
+        context: str | None = None,
     ) -> AssessmentData:
         """Run laya assessment and return AssessmentData.
 
         Args:
             text: The full document text.
             detections: Pre-computed entity detections.
+            context: Optional domain context forwarded to laya (e.g. 'home loan application').
 
         Returns:
             AssessmentData with sensitivity, categories, and derived advisory fields.
         """
         loop = asyncio.get_running_loop()
-        state = {"text": text, "entities": [e.entity_type.value for e in detections.entities if e.is_pii]}
+        state: dict[str, Any] = {
+            "text": text,
+            "entities": [e.entity_type.value for e in detections.entities if e.is_pii],
+        }
+        if context:
+            state["context"] = context
 
         try:
             result = await loop.run_in_executor(

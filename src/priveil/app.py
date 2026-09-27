@@ -131,7 +131,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                     logger.info("laya not installed; assess_backend=auto will use llm if configured.")
                 app.state.laya_assessor = None
 
-        if getattr(app.state, "assessor", None) is None and ab != "laya":
+        # Only build LLM assessor when laya is not handling /assess.
+        # In auto+laya-installed mode, laya_assessor is set → skip LLM init.
+        laya_active = app.state.laya_assessor is not None
+        if getattr(app.state, "assessor", None) is None and ab != "laya" and not laya_active:
             if settings.advisor_model:
                 from priveil.advisor.assessor import build_assessor_agent
 

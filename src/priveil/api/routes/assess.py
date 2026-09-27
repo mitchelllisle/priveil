@@ -44,7 +44,7 @@ async def assess_content(
 
     # Prefer laya assessor (fast, local, no API key)
     if laya_assessor is not None:
-        data = await laya_assessor.assess(request.text, detections)
+        data = await laya_assessor.assess(request.text, detections, context=request.context)
         return PriveilResponse(
             meta=Meta(
                 request=RequestMeta(),
