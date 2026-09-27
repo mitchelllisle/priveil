@@ -60,35 +60,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 app.state.advisor = build_laya_advisor(settings, executor)
                 logger.info("Laya span advisor active (backend=%s).", backend)
             except ImportError:
-                if backend == "laya":
-                    logger.error(
-                        "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed. "
-                        "Install with: uv sync --extra laya"
-                    )
-                else:
-                    logger.info(
-                        "No advisor configured (laya not installed); "
-                        "mode='advisor' falls back to 'fast'. "
-                        "Install laya (uv sync --extra laya) to enable zero-config span advisor."
-                    )
+                logger.info(
+                    "laya not installed; mode='advisor' falls back to 'fast'. "
+                    "Install with: uv sync --extra laya"
+                ) if backend != "laya" else logger.error(
+                    "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed."
+                )
                 app.state.advisor = None
 
-        # ── Assessor: Laya ────────────────────────────────────────────────────
+    # ── Assessor (Laya) — independent of span advisor ─────────────────────────
+    if getattr(app.state, "laya_assessor", None) is None:
         ab = settings.assess_backend
-        if getattr(app.state, "laya_assessor", None) is None and ab in ("laya", "auto"):
+        if ab in ("laya", "auto"):
             try:
                 from priveil.advisor.laya_assessor import build_laya_assessor
 
                 app.state.laya_assessor = build_laya_assessor(executor, preload=settings.laya_preload)
                 logger.info("Laya assessor active (assess_backend=%s).", ab)
             except ImportError:
-                if ab == "laya":
-                    logger.error(
-                        "PRIVEIL_ASSESS_BACKEND=laya but laya package is not installed. "
-                        "Install with: uv sync --extra laya"
-                    )
-                else:
-                    logger.info("laya not installed; /assess will return 503 when called.")
+                logger.info(
+                    "laya not installed; /assess will return 503 when called."
+                ) if ab != "laya" else logger.error(
+                    "PRIVEIL_ASSESS_BACKEND=laya but laya package is not installed."
+                )
                 app.state.laya_assessor = None
 
     # ── Warmup ────────────────────────────────────────────────────────────────
