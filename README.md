@@ -86,7 +86,7 @@ curl -X POST http://localhost:8000/detect \
 
 | Value | Behaviour |
 |-------|-----------|
-| `"advisor"` | Runs a span-level verification pass to remove false positives. Uses **laya** (fast, local, no API key) when `PRIVEIL_ADVISOR_BACKEND=laya`, or the pydantic-ai LLM when `PRIVEIL_ADVISOR_BACKEND=pydantic_ai` and `PRIVEIL_ADVISOR_MODEL` is set. Falls back to `"fast"` when neither is configured. |
+| `"advisor"` | Runs a span-level verification pass to remove false positives. With `PRIVEIL_ADVISOR_BACKEND=auto` (default): uses laya if installed, pydantic-ai LLM if `PRIVEIL_ADVISOR_MODEL` is set, otherwise falls back to `"fast"`. **No API key needed when laya is installed.** |
 | `"fast"` | Returns raw detector output immediately. No ML verification. |
 
 ### `POST /pseudonymise`
@@ -224,7 +224,7 @@ Copy `.env.example` to `.env` and set values.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PRIVEIL_ADVISOR_BACKEND` | `pydantic_ai` | Span advisor backend for `mode="advisor"`: `pydantic_ai` (requires `PRIVEIL_ADVISOR_MODEL`) or `laya` (requires `uv sync --extra laya`). |
+| `PRIVEIL_ADVISOR_BACKEND` | `auto` | Span advisor backend for `mode="advisor"`: `auto` (laya if installed, then pydantic_ai, then fast), `laya` (requires `uv sync --extra laya`), or `pydantic_ai` (requires `PRIVEIL_ADVISOR_MODEL`). |
 | `PRIVEIL_ADVISOR_MODEL` | _(unset)_ | LLM for `mode='advisor'` (pydantic_ai backend) and `/assess`. Format: `provider:model` e.g. `openai:gpt-4o-mini`, `anthropic:claude-haiku-3-5`. |
 | `PRIVEIL_ADVISOR_BASE_URL` | _(unset)_ | Custom OpenAI-compatible endpoint (vLLM, Ollama, Databricks, Azure AI). When set, `PRIVEIL_ADVISOR_MODEL` is the deployment/model name with no provider prefix. |
 | `PRIVEIL_ADVISOR_API_KEY` | _(unset)_ | API key for the custom endpoint. Defaults to `"local"` when `PRIVEIL_ADVISOR_BASE_URL` is set and this is unset. |
@@ -260,10 +260,13 @@ uv sync --extra laya
 ### Enable
 
 ```bash
+# laya auto-detected: just install the extra, no env var needed
+uv sync --extra laya
+# or force explicitly:
 PRIVEIL_ADVISOR_BACKEND=laya
 ```
 
-With `PRIVEIL_ADVISOR_BACKEND=laya`, `/detect` and `/pseudonymise` use laya for span verification. `PRIVEIL_ADVISOR_MODEL` is no longer required for `mode="advisor"` — only for `/assess`.
+With `advisor_backend=auto` (the default), installing `laya` is sufficient — `mode="advisor"` activates automatically without setting `PRIVEIL_ADVISOR_MODEL`. `/assess` still requires `PRIVEIL_ADVISOR_MODEL` (text generation is outside laya's scope).
 
 ### Production setup
 
