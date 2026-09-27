@@ -64,16 +64,27 @@ class LayaSpanAdvisor:
         if not advisor_spans:
             return AdvisorResult(entities=tuple(certain), advisor_applied=False)
 
-        kept = await self._verify_spans(text, advisor_spans)
+        kept, verified = await self._verify_spans(text, advisor_spans)
         merged = sorted(certain + kept, key=lambda e: e.start)
-        return AdvisorResult(entities=tuple(merged), advisor_applied=True)
+        return AdvisorResult(entities=tuple(merged), advisor_applied=verified)
 
-    async def _verify_spans(self, text: str, spans: list[Entity]) -> list[Entity]:
-        loop = asyncio.get_event_loop()
+    async def _verify_spans(
+        self, text: str, spans: list[Entity]
+    ) -> tuple[list[Entity], bool]:
+        """Verify spans via laya; returns (kept_entities, all_verified).
+
+        ``all_verified`` is False when any span fails verification (fail-open),
+        matching SpanAdvisor's contract: advisor_applied=False on any error.
+        """
+        loop = asyncio.get_running_loop()
+        any_failed = False
 
         async def _verify_one(entity: Entity) -> Entity | None:
+            nonlocal any_failed
             s = self._settings
-            context = text[max(0, entity.start - s.advisor_context_chars) : entity.end + s.advisor_context_chars]
+            context = text[
+                max(0, entity.start - s.advisor_context_chars) : entity.end + s.advisor_context_chars
+            ]
             state = {
                 "entity_type": entity.entity_type.value,
                 "span": entity.text,
@@ -90,11 +101,12 @@ class LayaSpanAdvisor:
                 logger.exception(
                     "Laya span verification failed for span '%s'; keeping (fail-open)", entity.text
                 )
+                any_failed = True
                 return entity  # fail-open
 
         tasks = [_verify_one(entity) for entity in spans]
         results = await asyncio.gather(*tasks)
-        return [e for e in results if e is not None]
+        return [e for e in results if e is not None], not any_failed
 
 
 def build_laya_advisor(settings: "Settings", executor: ThreadPoolExecutor) -> LayaSpanAdvisor:

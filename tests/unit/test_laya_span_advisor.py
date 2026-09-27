@@ -188,8 +188,9 @@ class TestFailOpen:
         adv = LayaSpanAdvisor(router=router, settings=_settings(), executor=executor)
         entity = _entity(verification="advisor", score=0.5)
         result = await adv.advise("user@example.com", (entity,))
-        # Should not raise; spans kept
+        # Should not raise; spans kept; advisor_applied=False (fail-open = not verified)
         assert len(result.entities) == 1
+        assert result.advisor_applied is False
 
     async def test_partial_failure_keeps_failed_span(self) -> None:
         """If one span fails, that span is kept; others proceed normally."""
@@ -214,8 +215,10 @@ class TestFailOpen:
         )
         result = await adv.advise("span1@example.com span2@example.com", entities)
         # span1: kept (fail-open); span2: prob 0.1 < 0.5, dropped
+        # advisor_applied=False because span1 failed — verification was not clean
         assert len(result.entities) == 1
         assert result.entities[0].text == "span1@example.com"
+        assert result.advisor_applied is False
 
 
 # ── output shape ──────────────────────────────────────────────────────────────

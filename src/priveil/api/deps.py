@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request
 from pydantic_ai import Agent
 
 from priveil.advisor.assessor import AssessmentDecision
-from priveil.advisor.span_advisor import SpanAdvisor
+from priveil.advisor.span_advisor import AdvisorProtocol
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
 
@@ -23,14 +23,13 @@ def _get_pseudonymiser(request: Request) -> AsyncPseudonymiser:
 PseudonymiserDep = Annotated[AsyncPseudonymiser, Depends(_get_pseudonymiser)]
 
 
-def _get_advisor(request: Request) -> SpanAdvisor | None:
-    # LayaSpanAdvisor is also accepted here via duck typing — both classes expose
-    # the same advise(text, entities) -> AdvisorResult signature.
-    return request.app.state.advisor  # type: ignore[no-any-return]  # conduit: app.state is untyped by FastAPI
+def _get_advisor(request: Request) -> AdvisorProtocol | None:
+    """Return the active span advisor (SpanAdvisor or LayaSpanAdvisor), or None."""
+    return request.app.state.advisor  # type: ignore[no-any-return]  # conduit: app.state untyped
 
 
-# Optional — routes fall back to fast mode (with surfaced mode_used) when this is None.
-AdvisorDep = Annotated[SpanAdvisor | None, Depends(_get_advisor)]
+# Optional — routes fall back to fast mode when None.
+AdvisorDep = Annotated[AdvisorProtocol | None, Depends(_get_advisor)]
 
 
 def _get_assessor(request: Request) -> "Agent[None, AssessmentDecision]":

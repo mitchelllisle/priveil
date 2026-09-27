@@ -6,7 +6,7 @@ we measure the async orchestration, thread-pool dispatch, and fan-out overhead.
 
 Run with::
 
-    uv run pytest benchmarks/test_laya_advisor_latency.py --benchmark-only -v
+    uv run pytest tests/unit/test_laya_advisor_latency.py --benchmark-only -v
 
 For real wall-clock measurements with actual laya inference, set
 PRIVEIL_ADVISOR_BACKEND=laya and point at a running server; see
