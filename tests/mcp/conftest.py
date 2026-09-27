@@ -33,6 +33,7 @@ def engine_state() -> Generator[_State, None, None]:
         analyser=AsyncAnalyser(recognisers, executor),
         pseudonymiser=AsyncPseudonymiser(AnonymizerEngine(), executor, operator_configs=operator_configs),  # type: ignore[no-untyped-call]
         advisor=None,
+        laya_assessor=None,
         assessor=None,
         executor=executor,
     )
