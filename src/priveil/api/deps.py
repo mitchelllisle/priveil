@@ -46,7 +46,7 @@ AssessorDep = Annotated["Agent[None, AssessmentDecision] | None", Depends(_get_a
 
 
 def _get_laya_assessor(request: Request) -> LayaAssessor | None:
-    return getattr(request.app.state, "laya_assessor", None)  # type: ignore[no-any-return]
+    return getattr(request.app.state, "laya_assessor", None)
 
 
 # Optional — None when laya is not installed or assess_backend != laya/auto.
