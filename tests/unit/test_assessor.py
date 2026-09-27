@@ -1,8 +1,6 @@
-"""Unit tests for priveil.advisor.assessor — pure functions only."""
+"""Unit tests for entity_breakdown — pure function, no LLM."""
 
-from priveil.advisor.assessor import _build_assessment_prompt
-from priveil.advisor.assessor import entity_breakdown as _entity_breakdown
-from priveil.domain.assessment import AssessmentRequest
+from priveil.advisor.laya_assessor import entity_breakdown as _entity_breakdown
 from priveil.domain.detection import DetectionResult
 from priveil.domain.entities import Entity, EntityType
 
@@ -11,26 +9,24 @@ _CLASSIFICATION: dict[EntityType, tuple[bool, str]] = {
     EntityType.PERSON: (True, "high"),
     EntityType.EMAIL_ADDRESS: (True, "medium"),
     EntityType.PHONE_NUMBER: (True, "medium"),
-    EntityType.CREDIT_CARD: (True, "critical"),
-    EntityType.LOCATION: (True, "low"),
-    EntityType.DATE_TIME: (False, "low"),
     EntityType.AU_TFN: (True, "critical"),
     EntityType.AU_ABN: (False, "low"),
-    EntityType.AU_ACN: (False, "low"),
-    EntityType.AU_BSB: (True, "high"),
-    EntityType.AU_ACCOUNT_NUMBER: (True, "high"),
-    EntityType.AU_MEDICARE: (True, "critical"),
-    EntityType.AU_PHONE: (True, "medium"),
 }
 
 
 def _entity(entity_type: EntityType, text: str, start: int = 0) -> Entity:
     is_pii, sensitivity = _CLASSIFICATION[entity_type]
     return Entity(
-        text=text, entity_type=entity_type,
-        start=start, end=start + len(text),
-        score=0.9, is_pii=is_pii, sensitivity=sensitivity,
+        text=text,
+        entity_type=entity_type,
+        start=start,
+        end=start + len(text),
+        score=0.9,
+        is_pii=is_pii,
+        sensitivity=sensitivity,
         verification="trust",
+        default_operator="replace",
+        default_operator_params={},
     )
 
 
@@ -42,22 +38,20 @@ def _detections(*entities: Entity, text: str = "test") -> DetectionResult:
 
 def test_breakdown_counts_by_type() -> None:
     detections = _detections(
-        _entity(EntityType.PERSON, "Jane Smith"),
-        _entity(EntityType.PERSON, "John Doe", start=15),
-        _entity(EntityType.EMAIL_ADDRESS, "a@b.com", start=30),
-        text="Jane Smith and John Doe at a@b.com",
+        _entity(EntityType.EMAIL_ADDRESS, "a@b.com", 0),
+        _entity(EntityType.EMAIL_ADDRESS, "c@d.com", 10),
+        _entity(EntityType.PERSON, "Jane", 20),
     )
     breakdown = _entity_breakdown(detections)
     counts = {b.entity_type: b.count for b in breakdown}
-    assert counts["PERSON"] == 2
-    assert counts["EMAIL_ADDRESS"] == 1
+    assert counts["PERSON"] == 1
+    assert counts["EMAIL_ADDRESS"] == 2  # noqa: PLR2004
 
 
 def test_breakdown_excludes_non_pii() -> None:
     detections = _detections(
-        _entity(EntityType.AU_ABN, "51 824 753 556"),  # is_pii=False
-        _entity(EntityType.EMAIL_ADDRESS, "a@b.com", start=20),
-        text="ABN 51 824 753 556 contact a@b.com",
+        _entity(EntityType.AU_ABN, "51 824 753 556", 0),  # is_pii=False
+        _entity(EntityType.EMAIL_ADDRESS, "a@b.com", 20),
     )
     breakdown = _entity_breakdown(detections)
     types = {b.entity_type for b in breakdown}
@@ -72,37 +66,7 @@ def test_breakdown_empty_when_no_pii() -> None:
 
 def test_breakdown_sensitivity_from_classification() -> None:
     detections = _detections(
-        _entity(EntityType.AU_TFN, "123 456 782"),
-        text="TFN 123 456 782",
+        _entity(EntityType.AU_TFN, "123 456 782", 0),
     )
     breakdown = _entity_breakdown(detections)
     assert breakdown[0].sensitivity == "critical"
-
-
-# ── _build_assessment_prompt ──────────────────────────────────────────────────
-
-def test_prompt_contains_text() -> None:
-    req = AssessmentRequest(text="Call jane@example.com")
-    detections = _detections(_entity(EntityType.EMAIL_ADDRESS, "jane@example.com"), text=req.text)
-    prompt = _build_assessment_prompt(req, detections)
-    assert "Call jane@example.com" in prompt
-
-
-def test_prompt_excludes_non_pii_from_entities_list() -> None:
-    req = AssessmentRequest(text="ABN 51 824 753 556")
-    detections = _detections(_entity(EntityType.AU_ABN, "51 824 753 556"), text=req.text)
-    prompt = _build_assessment_prompt(req, detections)
-    # ABN is not PII — should be excluded from the entities list shown to the LLM
-    assert "AU_ABN" not in prompt
-
-
-def test_prompt_includes_context() -> None:
-    req = AssessmentRequest(text="some text", context="Australian home loan")
-    detections = _detections(text=req.text)
-    assert "Australian home loan" in _build_assessment_prompt(req, detections)
-
-
-def test_prompt_no_context_line_when_absent() -> None:
-    req = AssessmentRequest(text="some text")
-    detections = _detections(text=req.text)
-    assert "Context:" not in _build_assessment_prompt(req, detections)

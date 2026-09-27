@@ -1,7 +1,7 @@
-"""Benchmark: LayaSpanAdvisor vs SpanAdvisor (pydantic-ai) latency.
+"""Benchmark: LayaSpanAdvisor latency.
 
 Measures the wall-clock latency of span verification for a set of realistic
-entity payloads. No real model inference — the advisor backends are mocked so
+entity payloads. No real model inference — the advisor backend is mocked so
 we measure the async orchestration, thread-pool dispatch, and fan-out overhead.
 
 Run with::
@@ -23,7 +23,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from priveil.advisor.laya_advisor import LayaSpanAdvisor
-from priveil.advisor.span_advisor import SpanAdvisor
 from priveil.domain.entities import Entity, EntityType
 from priveil.settings import Settings
 
@@ -39,7 +38,7 @@ def _entity(
     entity_type: EntityType,
     start: int,
     verification: str = "advisor",
-    score: float = 0.7,
+    score: float = 0.85,
 ) -> Entity:
     return Entity(
         text=text,
@@ -50,6 +49,8 @@ def _entity(
         is_pii=True,
         sensitivity="medium",
         verification=verification,  # type: ignore[arg-type]
+        default_operator="replace",
+        default_operator_params={},
     )
 
 
@@ -106,20 +107,6 @@ def _laya_advisor(latency_ms: float = 0.0) -> LayaSpanAdvisor:
     return LayaSpanAdvisor(router=router, settings=s, executor=executor)
 
 
-def _llm_advisor(latency_ms: float = 50.0) -> SpanAdvisor:
-    """LLM advisor with a mock agent that simulates network latency."""
-
-    async def _fake_run(*args: Any, **kwargs: Any) -> Any:
-        await asyncio.sleep(latency_ms / 1000)
-        result = MagicMock()
-        result.output.keep = list(range(10))  # keep all
-        return result
-
-    agent = MagicMock()
-    agent.run = _fake_run
-    return SpanAdvisor(agent=agent, settings=_settings())
-
-
 # ── benchmarks ────────────────────────────────────────────────────────────────
 
 
@@ -128,18 +115,6 @@ def test_laya_advisor_overhead(benchmark: Any, payload_name: str) -> None:
     """Benchmark laya advisor async orchestration (no inference latency)."""
     text, entities = _PAYLOADS[payload_name]
     advisor = _laya_advisor(latency_ms=0.0)
-
-    def run() -> None:
-        asyncio.run(advisor.advise(text, entities))
-
-    benchmark(run)
-
-
-@pytest.mark.parametrize("payload_name", list(_PAYLOADS.keys()))
-def test_llm_advisor_overhead(benchmark: Any, payload_name: str) -> None:
-    """Benchmark LLM advisor async orchestration (no network latency)."""
-    text, entities = _PAYLOADS[payload_name]
-    advisor = _llm_advisor(latency_ms=0.0)
 
     def run() -> None:
         asyncio.run(advisor.advise(text, entities))
@@ -156,22 +131,6 @@ def test_laya_simulated_33ms_per_span(benchmark: Any, payload_name: str, n_spans
     """Laya at 33ms/span concurrent: total time ≈ 33ms regardless of span count."""
     text, entities = _PAYLOADS[payload_name]
     advisor = _laya_advisor(latency_ms=33.0)
-
-    def run() -> None:
-        asyncio.run(advisor.advise(text, entities))
-
-    benchmark(run)
-
-
-@pytest.mark.parametrize("payload_name,n_spans", [
-    ("single_advisor_span", 1),
-    ("three_advisor_spans", 3),
-    ("five_advisor_spans", 5),
-])
-def test_llm_simulated_150ms_sequential(benchmark: Any, payload_name: str, n_spans: int) -> None:
-    """LLM sends all spans in one call: total time ≈ 150ms regardless of span count."""
-    text, entities = _PAYLOADS[payload_name]
-    advisor = _llm_advisor(latency_ms=150.0)
 
     def run() -> None:
         asyncio.run(advisor.advise(text, entities))

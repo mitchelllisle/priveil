@@ -31,29 +31,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
 
-    # ── GLiNER2 model (optional) ──────────────────────────────────────────────
-    gliner_model = None
-    try:
-        from gliner2 import GLiNER2
-        logger.info("Loading GLiNER2 model '%s'…", settings.gliner2_model)
-        gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
-        logger.info("GLiNER2 model loaded.")
-    except ImportError:
-        logger.warning(
-            "gliner2 package not installed — NER recognisers (PERSON, LOCATION, DATE_TIME) "
-            "are disabled. Install with: uv sync --extra gliner"
-        )
-    except Exception:
-        # Installed but unloadable (offline, cold HF cache, corrupt download).
-        # Degrade to regex-only rather than failing startup.
-        logger.exception(
-            "GLiNER2 model '%s' failed to load — continuing with regex-only detection; "
-            "PERSON, LOCATION and DATE_TIME will not be detected.",
-            settings.gliner2_model,
-        )
-
     # ── Detection engine ──────────────────────────────────────────────────────
-    recognisers = build_recognisers(gliner_model=gliner_model)
+    recognisers = build_recognisers()
     audit_hash_key = settings.audit_hash_key.get_secret_value().encode() if settings.audit_hash_key else None
     if audit_hash_key is None:
         logger.warning(
@@ -71,7 +50,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             executor, operator_configs=operator_configs
         )
 
-    # ── Span advisor (LLM or Laya) ─────────────────────────────────────────────
+    # ── Span advisor (Laya) ───────────────────────────────────────────────────
     if getattr(app.state, "advisor", None) is None:
         backend = settings.advisor_backend
         if backend in ("laya", "auto"):
@@ -81,66 +60,30 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 app.state.advisor = build_laya_advisor(settings, executor)
                 logger.info("Laya span advisor active (backend=%s).", backend)
             except ImportError:
-                if backend == "laya":
-                    logger.error(
-                        "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed. "
-                        "Install with: uv sync --extra laya"
-                    )
-                    app.state.advisor = None
-                else:
-                    # auto: laya not installed — fall through to pydantic_ai
-                    logger.info("laya not installed; advisor_backend=auto falling back to pydantic_ai.")
-                    app.state.advisor = None
-
-        if app.state.advisor is None and backend != "laya":
-            # pydantic_ai path (explicit or auto fallback when laya not installed)
-            if settings.advisor_model:
-                from priveil.advisor.span_advisor import build_span_advisor
-
-                app.state.advisor = build_span_advisor(settings)
-                logger.info("pydantic-ai span advisor active.")
-            else:
-                if backend == "pydantic_ai":
-                    logger.warning(
-                        "PRIVEIL_ADVISOR_BACKEND=pydantic_ai but PRIVEIL_ADVISOR_MODEL is unset; "
-                        "mode='advisor' will fall back to 'fast'."
-                    )
-                elif backend == "auto":
-                    logger.info(
-                        "No advisor configured (laya not installed, PRIVEIL_ADVISOR_MODEL unset); "
-                        "mode='advisor' falls back to 'fast'. "
-                        "Install laya (uv sync --extra laya) to enable zero-config span advisor."
-                    )
+                logger.info(
+                    "laya not installed; mode='advisor' falls back to 'fast'. "
+                    "Install with: uv sync --extra laya"
+                ) if backend != "laya" else logger.error(
+                    "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed."
+                )
                 app.state.advisor = None
 
-        # ── Assessor: LLM or Laya ─────────────────────────────────────────────
+    # ── Assessor (Laya) — independent of span advisor ─────────────────────────
+    if getattr(app.state, "laya_assessor", None) is None:
         ab = settings.assess_backend
-        if getattr(app.state, "laya_assessor", None) is None and ab in ("laya", "auto"):
+        if ab in ("laya", "auto"):
             try:
                 from priveil.advisor.laya_assessor import build_laya_assessor
 
                 app.state.laya_assessor = build_laya_assessor(executor, preload=settings.laya_preload)
                 logger.info("Laya assessor active (assess_backend=%s).", ab)
             except ImportError:
-                if ab == "laya":
-                    logger.error(
-                        "PRIVEIL_ASSESS_BACKEND=laya but laya package is not installed. "
-                        "Install with: uv sync --extra laya"
-                    )
-                else:
-                    logger.info("laya not installed; assess_backend=auto will use llm if configured.")
+                logger.info(
+                    "laya not installed; /assess will return 503 when called."
+                ) if ab != "laya" else logger.error(
+                    "PRIVEIL_ASSESS_BACKEND=laya but laya package is not installed."
+                )
                 app.state.laya_assessor = None
-
-        # Only build LLM assessor when laya is not handling /assess.
-        # In auto+laya-installed mode, laya_assessor is set → skip LLM init.
-        laya_active = app.state.laya_assessor is not None
-        if getattr(app.state, "assessor", None) is None and ab != "laya" and not laya_active:
-            if settings.advisor_model:
-                from priveil.advisor.assessor import build_assessor_agent
-
-                app.state.assessor = build_assessor_agent(settings)
-            else:
-                app.state.assessor = None
 
     # ── Warmup ────────────────────────────────────────────────────────────────
     await app.state.analyser.analyse(DetectionRequest(text="Warmup: TFN 123 456 782", mode="fast"))
@@ -148,7 +91,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         with suppress(Exception):
             warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup TFN 123 456 782", mode="fast"))
             await app.state.advisor.advise("Warmup TFN 123 456 782", warmup.entities)
-
 
     yield
     executor.shutdown(wait=True)
@@ -178,7 +120,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.analyser = None
     app.state.pseudonymiser = None
     app.state.advisor = None
-    app.state.assessor = None
     app.state.laya_assessor = None
 
     app.include_router(health.router)

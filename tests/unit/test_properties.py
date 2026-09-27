@@ -112,7 +112,7 @@ def test_build_operators_never_raises(overrides: dict[str, str]) -> None:
 def test_every_regex_recogniser_has_valid_sensitivity() -> None:
     """Every regex recogniser must declare a valid sensitivity and is_pii."""
     from priveil.recognisers.base import BaseRecogniser
-    for rec in build_recognisers(gliner_model=None):
+    for rec in build_recognisers():
         assert isinstance(rec, BaseRecogniser)
         assert rec.sensitivity in {"low", "medium", "high", "critical"}
         assert isinstance(rec.is_pii, bool)

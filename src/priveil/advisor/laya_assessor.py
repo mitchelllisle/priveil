@@ -17,11 +17,25 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Literal
 
-from priveil.advisor.assessor import entity_breakdown
-from priveil.domain.assessment import AssessmentData
+from priveil.domain.assessment import AssessmentData, EntityBreakdown
 from priveil.domain.detection import DetectionResult
 
 logger = logging.getLogger(__name__)
+
+
+def entity_breakdown(detections: DetectionResult) -> list[EntityBreakdown]:
+    """Compute entity_breakdown from detections. Pure function."""
+    type_info: dict[str, tuple[str, int]] = {}
+    for entity in detections.entities:
+        if not entity.is_pii:
+            continue
+        et = entity.entity_type.value
+        sensitivity, count = type_info.get(et, (entity.sensitivity, 0))
+        type_info[et] = (sensitivity, count + 1)
+    return [
+        EntityBreakdown(entity_type=et, sensitivity=sensitivity, count=count)
+        for et, (sensitivity, count) in sorted(type_info.items(), key=lambda x: -x[1][1])
+    ]
 
 # ── laya question schema ──────────────────────────────────────────────────────
 

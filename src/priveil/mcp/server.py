@@ -1,7 +1,6 @@
 """FastMCP server and lifespan for priveil.
 
-Exposes detect, pseudonymise, and assess as MCP tools backed by the same
-engine stack as the FastAPI service.
+Wires up detection, pseudonymisation, span advising (laya), and assessment (laya).
 """
 
 from __future__ import annotations
@@ -14,11 +13,9 @@ from dataclasses import dataclass
 from typing import cast
 
 from presidio_anonymizer import AnonymizerEngine
-from pydantic_ai import Agent
 
-from priveil.advisor.assessor import AssessmentDecision
+from priveil.advisor.laya_advisor import AdvisorProtocol
 from priveil.advisor.laya_assessor import LayaAssessor
-from priveil.advisor.span_advisor import AdvisorProtocol
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
 from priveil.recognisers.registry import build_operator_configs, build_recognisers
@@ -28,8 +25,7 @@ try:
     from mcp.server.fastmcp import Context, FastMCP
 except ImportError as exc:
     raise ImportError(
-        'The priveil MCP server requires the optional "mcp" extra. '
-        'Install it with: uv sync --extra mcp'
+        "mcp package is required for the MCP server. Install with: uv sync --extra mcp"
     ) from exc
 
 
@@ -37,9 +33,8 @@ except ImportError as exc:
 class _State:
     analyser: AsyncAnalyser
     pseudonymiser: AsyncPseudonymiser
-    advisor: AdvisorProtocol | None       # SpanAdvisor or LayaSpanAdvisor
+    advisor: AdvisorProtocol | None       # LayaSpanAdvisor or None
     laya_assessor: LayaAssessor | None    # fast assess path (no API key)
-    assessor: Agent[None, AssessmentDecision] | None  # LLM assess path
     executor: ThreadPoolExecutor
 
 
@@ -51,24 +46,7 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
     settings = Settings()
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
 
-    # ── GLiNER2 model (optional) ───────────────────────────────────────────────
-    gliner_model = None
-    try:
-        from gliner2 import GLiNER2
-        gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
-        logger.info("GLiNER2 model loaded for MCP server.")
-    except ImportError:
-        logger.warning(
-            "gliner2 not installed — NER recognisers disabled. "
-            "Install with: uv sync --extra gliner"
-        )
-    except Exception:
-        logger.exception(
-            "GLiNER2 model '%s' failed to load — continuing with regex-only detection.",
-            settings.gliner2_model,
-        )
-
-    recognisers = build_recognisers(gliner_model=gliner_model)
+    recognisers = build_recognisers()
     audit_hash_key = (
         settings.audit_hash_key.get_secret_value().encode()
         if settings.audit_hash_key
@@ -81,7 +59,7 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
         executor, operator_configs=operator_configs
     )
 
-    # ── Span advisor: laya (fast, local) or pydantic-ai LLM ───────────────────
+    # ── Span advisor: laya (fast, local) ──────────────────────────────────────
     advisor: AdvisorProtocol | None = None
     ab = settings.advisor_backend
     if ab in ("laya", "auto"):
@@ -93,14 +71,9 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
             if ab == "laya":
                 logger.error("PRIVEIL_ADVISOR_BACKEND=laya but laya package not installed.")
             else:
-                logger.info("MCP: laya not installed; auto falling back to pydantic_ai advisor.")
+                logger.info("MCP: laya not installed; advisor mode will fall back to fast.")
 
-    if advisor is None and ab != "laya" and settings.advisor_model:
-        from priveil.advisor.span_advisor import build_span_advisor
-        advisor = build_span_advisor(settings)
-        logger.info("MCP: pydantic-ai span advisor active.")
-
-    # ── Assessor: laya (fast, local) or pydantic-ai LLM ──────────────────────
+    # ── Assessor: laya (fast, local) ──────────────────────────────────────────
     laya_assessor: LayaAssessor | None = None
     aa = settings.assess_backend
     if aa in ("laya", "auto"):
@@ -112,21 +85,13 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
             if aa == "laya":
                 logger.error("PRIVEIL_ASSESS_BACKEND=laya but laya package not installed.")
             else:
-                logger.info("MCP: laya not installed; auto falling back to llm assessor.")
-
-    llm_assessor: Agent[None, AssessmentDecision] | None = None
-    laya_active = laya_assessor is not None
-    if not laya_active and aa != "laya" and settings.advisor_model:
-        from priveil.advisor.assessor import build_assessor_agent
-        llm_assessor = build_assessor_agent(settings)
-        logger.info("MCP: pydantic-ai LLM assessor active.")
+                logger.info("MCP: laya not installed; assess tool will raise if called.")
 
     state = _State(
         analyser=analyser,
         pseudonymiser=pseudonymiser,
         advisor=advisor,
         laya_assessor=laya_assessor,
-        assessor=llm_assessor,
         executor=executor,
     )
     try:
@@ -138,6 +103,6 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
 mcp = FastMCP("priveil", lifespan=_lifespan)
 
 
-def get_state(ctx: Context) -> _State:  # type: ignore[type-arg]
+def get_state(ctx: Context) -> _State:
     """Extract typed engine state from the FastMCP request context."""
     return cast(_State, ctx.request_context.lifespan_context)

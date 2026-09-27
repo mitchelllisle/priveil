@@ -11,10 +11,8 @@ from typing import Literal, cast
 
 from mcp.server.fastmcp import Context
 
-from priveil.advisor.assessor import ASSESSMENT_ADVISORY_DISCLAIMER
-from priveil.advisor.assessor import assess as _llm_assess
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
-from priveil.domain.assessment import AssessmentData, AssessmentRequest
+from priveil.domain.assessment import AssessmentData
 from priveil.domain.detection import DetectionData, DetectionRequest
 from priveil.domain.pseudonymisation import OperatorType, PseudonymisationData, PseudonymisationRequest
 from priveil.mcp.server import get_state, mcp
@@ -25,20 +23,20 @@ logger = logging.getLogger(__name__)
 @mcp.tool()
 async def detect(
     text: str,
-    ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
+    ctx: Context,  # conduit: FastMCP Context not generic at runtime
     mode: Literal["fast", "advisor"] = "advisor",
 ) -> PriveilResponse[DetectionData]:
     """Detect PII entities in text.
 
     Args:
-        text: The text to analyse for PII.
-        mode: 'advisor' runs an LLM pass to remove false positives (slower, default).
-            'fast' returns raw detector output. Falls back to 'fast' when
-            PRIVEIL_ADVISOR_MODEL is unset (surfaced via meta.response.mode).
+        text: The text to scan for PII.
+        mode: 'fast' runs regex-only; 'advisor' additionally runs laya span
+            verification when available. Falls back to 'fast' if laya is not
+            installed.
 
     Returns:
-        PriveilResponse with meta (request/response mode and input_hash) and
-        data containing the list of detected entities.
+        PriveilResponse with meta (input_hash, mode, advisor_applied) and
+        data containing a tuple of detected Entity objects.
     """
     state = get_state(ctx)
     result = await state.analyser.analyse(DetectionRequest(text=text, mode=mode))
@@ -51,12 +49,15 @@ async def detect(
     elif mode == "advisor":
         mode_used = "fast"
         logger.warning(
-            "mode='advisor' requested for MCP detect but PRIVEIL_ADVISOR_MODEL is unset; falling back to mode='fast'."
+            "mode='advisor' requested but laya is not installed; falling back to mode='fast'."
         )
     return PriveilResponse(
         meta=Meta(
             request=RequestMeta(mode=mode),
-            response=ResponseMeta(mode=mode_used, input_hash=result.input_hash),
+            response=ResponseMeta(
+                mode=mode_used,
+                input_hash=result.input_hash,
+            ),
         ),
         data=DetectionData(entities=result.entities, advisor_applied=advisor_applied),
     )
@@ -65,7 +66,7 @@ async def detect(
 @mcp.tool()
 async def anonymise(
     text: str,
-    ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
+    ctx: Context,  # conduit: FastMCP Context not generic at runtime
     mode: Literal["fast", "advisor"] = "advisor",
     operator_overrides: dict[str, str] | None = None,
 ) -> PriveilResponse[PseudonymisationData]:
@@ -96,7 +97,7 @@ async def anonymise(
     elif mode == "advisor":
         mode_used = "fast"
         logger.warning(
-            "mode='advisor' requested for MCP anonymise but PRIVEIL_ADVISOR_MODEL is unset;"
+            "mode='advisor' requested for MCP anonymise but laya is not installed;"
             " falling back to mode='fast'."
         )
     _VALID_OPERATORS = {"replace", "mask", "redact", "hash"}
@@ -123,7 +124,7 @@ async def anonymise(
 @mcp.tool()
 async def assess(
     text: str,
-    ctx: Context,  # type: ignore[type-arg]  # conduit: FastMCP Context not generic at runtime
+    ctx: Context,  # conduit: FastMCP Context not generic at runtime
     context: str | None = None,
 ) -> PriveilResponse[AssessmentData]:
     """Assess the sensitivity and regulatory risk of text.
@@ -141,7 +142,7 @@ async def assess(
         decisions; advisory text is rule-derived (no LLM, no API key required).
 
     Raises:
-        ValueError: If neither laya nor PRIVEIL_ADVISOR_MODEL is configured.
+        ValueError: If laya is not installed.
     """
     _LAYA_DISCLAIMER = (
         "Sensitivity and categories derived from laya typed decisions; "
@@ -150,7 +151,6 @@ async def assess(
     state = get_state(ctx)
     detections = await state.analyser.analyse(DetectionRequest(text=text))
 
-    # Prefer laya assessor (fast, local, no API key)
     if state.laya_assessor is not None:
         data = await state.laya_assessor.assess(text, detections, context=context)
         return PriveilResponse(
@@ -164,20 +164,6 @@ async def assess(
             data=data,
         )
 
-    # Fall back to LLM assessor
-    if state.assessor is not None:
-        data = await _llm_assess(AssessmentRequest(text=text, context=context), detections, state.assessor)
-        return PriveilResponse(
-            meta=Meta(
-                request=RequestMeta(),
-                response=ResponseMeta(
-                    input_hash=detections.input_hash,
-                    advisory_disclaimer=ASSESSMENT_ADVISORY_DISCLAIMER,
-                ),
-            ),
-            data=data,
-        )
-
     raise ValueError(
-        "assess requires either laya (uv sync --extra laya) or PRIVEIL_ADVISOR_MODEL to be configured."
+        "assess requires laya (uv sync --extra laya) to be installed."
     )
