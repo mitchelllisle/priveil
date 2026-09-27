@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     advisor_context_chars: int = 60
     advisor_timeout_ms: int = 250
     advisor_max_tokens: int = 64
+    # ── Laya span advisor ─────────────────────────────────────────────────────
+    # Backend for mode='advisor' span verification: "pydantic_ai" | "laya"
+    # "pydantic_ai" requires PRIVEIL_ADVISOR_MODEL; "laya" requires laya package installed.
+    advisor_backend: str = "pydantic_ai"
+    # Probability threshold for laya noul answer — spans scoring >= this are kept.
+    laya_pii_threshold: float = 0.5
+    # Preload laya checkpoints at startup (vs lazy on first request). Set True in production.
+    laya_preload: bool = False
     # ── LLM judge ─────────────────────────────────────────────────────────────
     # Set PRIVEIL_JUDGE_MODEL to enable span-verdict refinement.
     # When unset: mode='judge' falls back to 'fast'.

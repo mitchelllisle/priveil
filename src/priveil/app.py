@@ -71,17 +71,34 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             executor, operator_configs=operator_configs
         )
 
-    # ── LLM advisor (optional) ────────────────────────────────────────────────
+    # ── Span advisor (LLM or Laya) ─────────────────────────────────────────────
     if getattr(app.state, "advisor", None) is None:
-        if settings.advisor_model:
-            from priveil.advisor.assessor import build_assessor_agent
+        if settings.advisor_backend == "laya":
+            try:
+                from priveil.advisor.laya_advisor import build_laya_advisor
+
+                app.state.advisor = build_laya_advisor(settings, executor)
+            except ImportError:
+                logger.error(
+                    "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed. "
+                    "Install with: uv sync --extra laya"
+                )
+                app.state.advisor = None
+        elif settings.advisor_model:
             from priveil.advisor.span_advisor import build_span_advisor
 
             app.state.advisor = build_span_advisor(settings)
-            app.state.assessor = build_assessor_agent(settings)
         else:
             app.state.advisor = None
-            app.state.assessor = None
+
+        # assessor always needs the LLM model regardless of advisor_backend
+        if getattr(app.state, "assessor", None) is None:
+            if settings.advisor_model:
+                from priveil.advisor.assessor import build_assessor_agent
+
+                app.state.assessor = build_assessor_agent(settings)
+            else:
+                app.state.assessor = None
 
     # ── Warmup ────────────────────────────────────────────────────────────────
     await app.state.analyser.analyse(DetectionRequest(text="Warmup: TFN 123 456 782", mode="fast"))

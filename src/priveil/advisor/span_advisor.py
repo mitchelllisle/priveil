@@ -20,7 +20,7 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
@@ -41,6 +41,20 @@ class AdvisorResult(BaseModel, frozen=True):
 
     entities: tuple[Entity, ...]
     advisor_applied: bool
+
+
+class AdvisorProtocol(Protocol):
+    """Structural protocol for span verification advisors.
+
+    Both SpanAdvisor (pydantic-ai LLM) and LayaSpanAdvisor (laya) satisfy
+    this protocol. Use this type in dependency injection and type hints
+    instead of importing a concrete class.
+    """
+
+    async def advise(self, text: str, entities: tuple[Entity, ...]) -> AdvisorResult:
+        """Verify uncertain spans and return the filtered entity set."""
+        ...
+
 
 
 class KeepDecision(BaseModel, frozen=True):
