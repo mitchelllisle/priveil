@@ -19,11 +19,11 @@ RUN uv sync --frozen --no-dev --no-cache
 COPY src/ ./src/
 RUN uv pip install --no-deps . --no-cache-dir
 
-# ── local: laya + mcp extras for CPU-only local development ───────────────────
-# No NVIDIA GPU required. Provides span verification, assessment, and MCP server.
+# ── local: gliner + laya + mcp for full-feature CPU dev ───────────────────────
+# PERSON/LOCATION/DATE_TIME via GLiNER2; span verification + assessment via laya.
 FROM setup AS local
 
-RUN uv sync --frozen --no-dev --extra laya --extra mcp --no-cache
+RUN uv sync --frozen --no-dev --extra gliner --extra laya --extra mcp --no-cache
 
 COPY src/ ./src/
 RUN uv pip install --no-deps . --no-cache-dir
