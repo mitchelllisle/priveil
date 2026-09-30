@@ -16,6 +16,11 @@ class Settings(BaseSettings):
 
     debug: bool = False
     executor_max_workers: int = 4
+    # ── GLiNER2 NER detector ──────────────────────────────────────────────────
+    # Model for PERSON, LOCATION, DATE_TIME detection.
+    # Requires: uv sync --extra gliner
+    # When gliner2 is not installed, NER recognisers are skipped (regex-only mode).
+    gliner2_model: str = "fastino/gliner2-base-v1"
     # Entities scoring >= this are "certain" and bypass the advisor even when
     # their recogniser declares verification="advisor".
     advisor_score_threshold: float = 0.9
