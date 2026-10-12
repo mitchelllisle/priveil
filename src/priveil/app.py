@@ -1,6 +1,6 @@
 import importlib.metadata
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, suppress
 
@@ -26,7 +26,7 @@ def _version() -> str:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Startup / shutdown hook — initialise engines, yield, then clean up."""
     settings: Settings = app.state.settings
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
@@ -68,47 +68,47 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             executor, operator_configs=operator_configs
         )
 
-    # ── Span advisor (Laya) ───────────────────────────────────────────────────
-    if getattr(app.state, "advisor", None) is None:
-        backend = settings.advisor_backend
+    # ── Span judge ────────────────────────────────────────────────────────────
+    if getattr(app.state, "judge", None) is None:
+        backend = settings.judge_backend
         if backend in ("laya", "auto"):
             try:
-                from priveil.advisor.laya_advisor import build_laya_advisor
+                from priveil.judge.judge import build_span_judge
 
-                app.state.advisor = build_laya_advisor(settings, executor)
-                logger.info("Laya span advisor active (backend=%s).", backend)
+                app.state.judge = build_span_judge(settings, executor)
+                logger.info("Span judge active (backend=%s).", backend)
             except ImportError:
                 logger.info(
-                    "laya not installed; mode='advisor' falls back to 'fast'. "
+                    "laya not installed; mode='judge' falls back to 'fast'. "
                     "Install with: uv sync --extra laya"
                 ) if backend != "laya" else logger.error(
-                    "PRIVEIL_ADVISOR_BACKEND=laya but laya package is not installed."
+                    "PRIVEIL_JUDGE_BACKEND=laya but laya package is not installed."
                 )
-                app.state.advisor = None
+                app.state.judge = None
 
-    # ── Assessor (Laya) — independent of span advisor ─────────────────────────
-    if getattr(app.state, "laya_assessor", None) is None:
+    # ── Judge assessor — independent of span judge ────────────────────────────
+    if getattr(app.state, "judge_assessor", None) is None:
         ab = settings.assess_backend
         if ab in ("laya", "auto"):
             try:
-                from priveil.advisor.laya_assessor import build_laya_assessor
+                from priveil.judge.assessor import build_judge_assessor
 
-                app.state.laya_assessor = build_laya_assessor(executor, preload=settings.laya_preload)
-                logger.info("Laya assessor active (assess_backend=%s).", ab)
+                app.state.judge_assessor = build_judge_assessor(executor, preload=settings.judge_preload)
+                logger.info("Judge assessor active (assess_backend=%s).", ab)
             except ImportError:
                 logger.info(
                     "laya not installed; /assess will return 503 when called."
                 ) if ab != "laya" else logger.error(
                     "PRIVEIL_ASSESS_BACKEND=laya but laya package is not installed."
                 )
-                app.state.laya_assessor = None
+                app.state.judge_assessor = None
 
     # ── Warmup ────────────────────────────────────────────────────────────────
     await app.state.analyser.analyse(DetectionRequest(text="Warmup: TFN 123 456 782", mode="fast"))
-    if app.state.advisor is not None:
+    if app.state.judge is not None:
         with suppress(Exception):
             warmup = await app.state.analyser.analyse(DetectionRequest(text="Warmup TFN 123 456 782", mode="fast"))
-            await app.state.advisor.advise("Warmup TFN 123 456 782", warmup.entities)
+            await app.state.judge.judge("Warmup TFN 123 456 782", warmup.entities)
 
     yield
     executor.shutdown(wait=True)
@@ -137,8 +137,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # never hit AttributeError on app.state.<key>.
     app.state.analyser = None
     app.state.pseudonymiser = None
-    app.state.advisor = None
-    app.state.laya_assessor = None
+    app.state.judge = None
+    app.state.judge_assessor = None
 
     app.include_router(health.router)
     app.include_router(detect.router, prefix="/detect", tags=["detection"])

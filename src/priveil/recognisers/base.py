@@ -35,7 +35,7 @@ class BaseRecogniser(ABC):
     entity_type: ClassVar[EntityType]
     is_pii: ClassVar[bool]
     sensitivity: ClassVar[Sensitivity]
-    verification: ClassVar[Literal["trust", "advisor"]]
+    verification: ClassVar[Literal["trust", "judge"]]
     default_operator: ClassVar[str]          # "replace" | "mask" | "redact" | "hash"
     default_operator_params: ClassVar[dict[str, object]]
 

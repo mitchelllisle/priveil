@@ -27,14 +27,14 @@ def test_entity_model_accepts_trust_verification() -> None:
     assert e.verification == "trust"
 
 
-def test_entity_model_accepts_advisor_verification() -> None:
-    """Entity can be constructed with verification='advisor'."""
+def test_entity_model_accepts_judge_verification() -> None:
+    """Entity can be constructed with verification='judge'."""
     e = Entity(
         text="Jane Smith", entity_type=EntityType.PERSON,
         start=0, end=10, score=0.9,
-        is_pii=True, sensitivity="high", verification="advisor",
+        is_pii=True, sensitivity="high", verification="judge",
     )
-    assert e.verification == "advisor"
+    assert e.verification == "judge"
 
 
 def test_credit_card_is_critical_pii() -> None:

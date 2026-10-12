@@ -2,10 +2,10 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Request
 
-from priveil.advisor.laya_advisor import AdvisorProtocol
-from priveil.advisor.laya_assessor import LayaAssessor
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.judge.assessor import JudgeAssessor
+from priveil.judge.judge import JudgeProtocol
 
 
 def _get_analyser(request: Request) -> AsyncAnalyser:
@@ -22,18 +22,18 @@ def _get_pseudonymiser(request: Request) -> AsyncPseudonymiser:
 PseudonymiserDep = Annotated[AsyncPseudonymiser, Depends(_get_pseudonymiser)]
 
 
-def _get_advisor(request: Request) -> AdvisorProtocol | None:
-    """Return the active span advisor (LayaSpanAdvisor), or None."""
-    return request.app.state.advisor  # type: ignore[no-any-return]  # conduit: app.state untyped
+def _get_judge(request: Request) -> JudgeProtocol | None:
+    """Return the active span judge (SpanJudge), or None."""
+    return request.app.state.judge  # type: ignore[no-any-return]  # conduit: app.state untyped
 
 
 # Optional — routes fall back to fast mode when None.
-AdvisorDep = Annotated[AdvisorProtocol | None, Depends(_get_advisor)]
+JudgeDep = Annotated[JudgeProtocol | None, Depends(_get_judge)]
 
 
-def _get_laya_assessor(request: Request) -> LayaAssessor | None:
-    return getattr(request.app.state, "laya_assessor", None)
+def _get_judge_assessor(request: Request) -> JudgeAssessor | None:
+    return getattr(request.app.state, "judge_assessor", None)
 
 
 # Optional — None when laya is not installed or assess_backend != laya/auto.
-LayaAssessorDep = Annotated[LayaAssessor | None, Depends(_get_laya_assessor)]
+JudgeAssessorDep = Annotated[JudgeAssessor | None, Depends(_get_judge_assessor)]

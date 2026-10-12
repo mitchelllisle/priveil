@@ -14,13 +14,13 @@ class AUBSBRecogniser(RegexRecogniser):
 
     Format: XXX-XXX (hyphen required). No checksum — BSB is a routing lookup.
     Low base score; context words are required to reach a meaningful confidence level.
-    Verification is "advisor" because format-only detection yields many FP.
+    Verification is "judge" because format-only detection yields many FP.
     """
 
     entity_type: ClassVar[EntityType] = EntityType.AU_BSB
     is_pii: ClassVar[bool] = True
     sensitivity: ClassVar[Sensitivity] = "high"
-    verification: ClassVar[Literal["trust", "advisor"]] = "advisor"
+    verification: ClassVar[Literal["trust", "judge"]] = "judge"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "XXX-XXX"}
 

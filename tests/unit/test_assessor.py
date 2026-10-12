@@ -1,8 +1,8 @@
 """Unit tests for entity_breakdown — pure function, no LLM."""
 
-from priveil.advisor.laya_assessor import entity_breakdown as _entity_breakdown
 from priveil.domain.detection import DetectionResult
 from priveil.domain.entities import Entity, EntityType
+from priveil.judge.assessor import entity_breakdown as _entity_breakdown
 
 # Hardcoded classification map (replaces the removed ENTITY_CLASSIFICATION dict).
 _CLASSIFICATION: dict[EntityType, tuple[bool, str]] = {

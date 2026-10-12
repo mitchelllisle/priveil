@@ -9,7 +9,7 @@ entirely by ``BaseRecogniser`` subclasses:
 All recognisers run concurrently in a shared thread-pool executor (CPU-bound).
 Overlapping spans from different recognisers are deduplicated by keeping the
 highest-score span.  Each entity carries the recogniser's ``verification``
-declaration (``"trust"`` or ``"advisor"``) so the SpanAdvisor can route
+declaration (``"trust"`` or ``"judge"``) so the SpanJudge can route
 without a separate settings lookup.
 """
 
@@ -132,7 +132,7 @@ class AsyncAnalyser:
         self,
         text: str,
         entities: tuple[Entity, ...],
-        mode: Literal["fast", "advisor"] = "fast",
+        mode: Literal["fast", "judge"] = "fast",
     ) -> DetectionResult:
         """Build a DetectionResult from pre-computed entities (e.g. from a prior /detect call)."""
         return DetectionResult.from_text(

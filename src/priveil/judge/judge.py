@@ -1,8 +1,8 @@
-"""Laya-backed span advisor — System 1 non-autoregressive PII verification.
+"""Span judge — Type-1, non-autoregressive PII verification.
 
-Replaces the pydantic-ai LLM advisor for mode='advisor' span verification.
-Uses laya's Router with noul (yes/no likelihood) questions to verify whether
-detected spans are genuine PII. Typical latency: ~33 ms per span on CPU.
+Uses noul (yes/no likelihood) questions to verify whether detected spans are
+genuine PII. Current implementation: laya Router. Typical latency: ~33 ms per
+span on CPU.
 
 Requires: uv sync --extra laya
 """
@@ -23,17 +23,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class AdvisorResult(BaseModel, frozen=True):
-    """Result of a span-verdict advise pass."""
+class JudgeResult(BaseModel, frozen=True):
+    """Result of a span-verdict judge pass."""
 
     entities: tuple[Entity, ...]
-    advisor_applied: bool
+    judge_applied: bool
 
 
-class AdvisorProtocol(Protocol):
-    """Structural protocol for span verification advisors (LayaSpanAdvisor satisfies this)."""
+class JudgeProtocol(Protocol):
+    """Structural protocol for span judges (SpanJudge satisfies this)."""
 
-    async def advise(self, text: str, entities: tuple[Entity, ...]) -> AdvisorResult: ...
+    async def judge(self, text: str, entities: tuple[Entity, ...]) -> JudgeResult: ...
 
 _VERIFY_QUESTION: dict[str, Any] = {
     "is_genuine_pii": {
@@ -46,8 +46,8 @@ _VERIFY_QUESTION: dict[str, Any] = {
 }
 
 
-class LayaSpanAdvisor:
-    """Span verification using laya's non-autoregressive Router.
+class SpanJudge:
+    """Span verification using a Type-1 non-autoregressive model (laya Router).
 
     Each uncertain span is verified with a noul question in ~33 ms.
     Spans run concurrently via the thread-pool executor.
@@ -59,36 +59,35 @@ class LayaSpanAdvisor:
         self._settings = settings
         self._executor = executor
 
-    async def advise(self, text: str, entities: tuple[Entity, ...]) -> AdvisorResult:
-        """Verify uncertain spans via laya; fail-open on any error.
+    async def judge(self, text: str, entities: tuple[Entity, ...]) -> JudgeResult:
+        """Verify uncertain spans; fail-open on any error.
 
-        Trust-routed entities and high-score entities bypass verification, matching
-        SpanAdvisor behaviour exactly.
+        Trust-routed entities and high-score entities bypass verification.
         """
         s = self._settings
         certain: list[Entity] = []
-        advisor_spans: list[Entity] = []
+        judge_spans: list[Entity] = []
 
         for entity in entities:
-            if entity.verification == "trust" or entity.score >= s.advisor_score_threshold:
+            if entity.verification == "trust" or entity.score >= s.judge_score_threshold:
                 certain.append(entity)
             else:
-                advisor_spans.append(entity)
+                judge_spans.append(entity)
 
-        if not advisor_spans:
-            return AdvisorResult(entities=tuple(certain), advisor_applied=False)
+        if not judge_spans:
+            return JudgeResult(entities=tuple(certain), judge_applied=False)
 
-        kept, verified = await self._verify_spans(text, advisor_spans)
+        kept, verified = await self._verify_spans(text, judge_spans)
         merged = sorted(certain + kept, key=lambda e: e.start)
-        return AdvisorResult(entities=tuple(merged), advisor_applied=verified)
+        return JudgeResult(entities=tuple(merged), judge_applied=verified)
 
     async def _verify_spans(
         self, text: str, spans: list[Entity]
     ) -> tuple[list[Entity], bool]:
-        """Verify spans via laya; returns (kept_entities, all_verified).
+        """Verify spans; returns (kept_entities, all_verified).
 
-        ``all_verified`` is False when any span fails verification (fail-open),
-        matching SpanAdvisor's contract: advisor_applied=False on any error.
+        ``all_verified`` is False when any span fails (fail-open):
+        judge_applied=False on any error.
         """
         loop = asyncio.get_running_loop()
         any_failed = False
@@ -97,7 +96,7 @@ class LayaSpanAdvisor:
             nonlocal any_failed
             s = self._settings
             context = text[
-                max(0, entity.start - s.advisor_context_chars) : entity.end + s.advisor_context_chars
+                max(0, entity.start - s.judge_context_chars) : entity.end + s.judge_context_chars
             ]
             state = {
                 "entity_type": entity.entity_type.value,
@@ -110,10 +109,10 @@ class LayaSpanAdvisor:
                     lambda: self._router.predict(state, _VERIFY_QUESTION),
                 )
                 prob: float = result["answers"]["is_genuine_pii"]["noul"]
-                return entity if prob >= s.laya_pii_threshold else None
+                return entity if prob >= s.judge_pii_threshold else None
             except Exception:
                 logger.exception(
-                    "Laya span verification failed for span '%s'; keeping (fail-open)", entity.text
+                    "Span judge verification failed for span '%s'; keeping (fail-open)", entity.text
                 )
                 any_failed = True
                 return entity  # fail-open
@@ -123,13 +122,13 @@ class LayaSpanAdvisor:
         return [e for e in results if e is not None], not any_failed
 
 
-def build_laya_advisor(settings: "Settings", executor: ThreadPoolExecutor) -> LayaSpanAdvisor:
-    """Build a LayaSpanAdvisor from application settings.
+def build_span_judge(settings: "Settings", executor: ThreadPoolExecutor) -> SpanJudge:
+    """Build a SpanJudge from application settings.
 
     Raises ImportError if the laya extra is not installed.
     """
     from laya import Router  # noqa: PLC0415
 
-    router = Router(preload=settings.laya_preload)
-    logger.info("Laya span advisor loaded (preload=%s)", settings.laya_preload)
-    return LayaSpanAdvisor(router=router, settings=settings, executor=executor)
+    router = Router(preload=settings.judge_preload)
+    logger.info("Span judge loaded (preload=%s)", settings.judge_preload)
+    return SpanJudge(router=router, settings=settings, executor=executor)

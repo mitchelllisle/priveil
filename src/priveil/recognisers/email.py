@@ -15,7 +15,7 @@ class EmailRecogniser(RegexRecogniser):
     entity_type: ClassVar[EntityType] = EntityType.EMAIL_ADDRESS
     is_pii: ClassVar[bool] = True
     sensitivity: ClassVar[Sensitivity] = "medium"
-    verification: ClassVar[Literal["trust", "advisor"]] = "trust"
+    verification: ClassVar[Literal["trust", "judge"]] = "trust"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<EMAIL>"}
 

@@ -1,4 +1,4 @@
-"""Functional tests for MCP tools — real engines, no advisor model."""
+"""Functional tests for MCP tools — real engines, no judge model."""
 
 from __future__ import annotations
 
@@ -78,6 +78,6 @@ async def test_anonymise_entity_map_populated(engine_state: _State) -> None:
     assert "billing@acme.com" in result.data.entity_map
 
 
-async def test_assess_without_laya_raises(engine_state: _State) -> None:
+async def test_assess_without_judge_raises(engine_state: _State) -> None:
     with pytest.raises(ValueError, match="laya"):
         await assess("jane@example.com TFN 123 456 782", ctx=make_ctx(engine_state))

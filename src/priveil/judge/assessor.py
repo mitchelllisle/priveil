@@ -1,10 +1,9 @@
-"""Laya-backed fast assessor for /assess.
+"""Judge assessor for /assess.
 
-Replaces the LLM assessor with laya typed questions for deployments that cannot
-or do not want to configure PRIVEIL_ADVISOR_MODEL. Returns the same
-``AssessmentData`` shape as the LLM assessor; text-generation fields
-(risk_summary, regulatory_flags, recommended_handling, reasoning) are derived
-from laya's typed answers plus entity-based rule tables.
+Uses a Type-1 non-autoregressive model (laya) with typed questions to assess
+text sensitivity. Returns the same ``AssessmentData`` shape as an LLM assessor;
+text-generation fields (risk_summary, regulatory_flags, recommended_handling,
+reasoning) are derived from typed answers plus entity-based rule tables.
 
 Typical latency: ~33 ms on GPU, ~80-150 ms on CPU. No API key required.
 
@@ -37,7 +36,7 @@ def entity_breakdown(detections: DetectionResult) -> list[EntityBreakdown]:
         for et, (sensitivity, count) in sorted(type_info.items(), key=lambda x: -x[1][1])
     ]
 
-# ── laya question schema ──────────────────────────────────────────────────────
+# ── question schema ───────────────────────────────────────────────────────────
 
 _ASSESS_QUESTIONS: dict[str, Any] = {
     "overall_sensitivity": {
@@ -130,7 +129,7 @@ def _derive_assess_result(
     answers: dict[str, Any],
     detections: DetectionResult,
 ) -> AssessmentData:
-    """Convert laya typed answers + detections into AssessmentData."""
+    """Convert judge typed answers + detections into AssessmentData."""
     sensitivity: Literal["low", "medium", "high", "critical"] = answers["overall_sensitivity"]["choice"]
 
     # Categories from noul answers (threshold 0.5)
@@ -144,7 +143,7 @@ def _derive_assess_result(
     if answers["is_employment"]["noul"] >= 0.5:
         categories.append("employment")
 
-    # Entity-level categories can override/supplement laya answers
+    # Entity-level categories can override/supplement judge answers
     pii_types = [e.entity_type.value for e in detections.entities if e.is_pii]
     if any(t in {"AU_TFN", "CREDIT_CARD", "AU_BSB", "AU_MEDICARE"} for t in pii_types):
         if "financial" not in categories:
@@ -168,9 +167,9 @@ def _derive_assess_result(
     risk_summary = _build_risk_summary(sensitivity, categories, pii_types)
     recommended_handling = _HANDLING_BY_SENSITIVITY[sensitivity]
     reasoning = (
-        f"Laya fast-assess: sensitivity={sensitivity}, categories={categories}, "
+        f"Judge assess: sensitivity={sensitivity}, categories={categories}, "
         f"detected_pii_types={pii_types}. "
-        "This result is rule-derived from laya typed decisions and detected entity types; "
+        "This result is rule-derived from judge typed decisions and detected entity types; "
         "for detailed regulatory analysis use PRIVEIL_ASSESS_BACKEND=llm."
     )
     return AssessmentData(
@@ -184,13 +183,13 @@ def _derive_assess_result(
     )
 
 
-# ── advisor class ─────────────────────────────────────────────────────────────
+# ── judge assessor class ──────────────────────────────────────────────────────
 
 
-class LayaAssessor:
-    """Laya-based fast assessor — no LLM, no API key required.
+class JudgeAssessor:
+    """Assessor using a Type-1 non-autoregressive model — no LLM, no API key required.
 
-    Asks typed questions about the text using laya's Router and derives
+    Asks typed questions about the text using the judge Router (laya) and derives
     AssessmentData from calibrated noul/choice answers + entity rule tables.
     """
 
@@ -204,12 +203,12 @@ class LayaAssessor:
         detections: DetectionResult,
         context: str | None = None,
     ) -> AssessmentData:
-        """Run laya assessment and return AssessmentData.
+        """Run judge assessment and return AssessmentData.
 
         Args:
             text: The full document text.
             detections: Pre-computed entity detections.
-            context: Optional domain context forwarded to laya (e.g. 'home loan application').
+            context: Optional domain context (e.g. 'home loan application').
 
         Returns:
             AssessmentData with sensitivity, categories, and derived advisory fields.
@@ -229,14 +228,14 @@ class LayaAssessor:
             )
             return _derive_assess_result(result["answers"], detections)
         except Exception:
-            logger.exception("Laya assess failed; re-raising (not fail-open for assess)")
+            logger.exception("Judge assess failed; re-raising (not fail-open for assess)")
             raise
 
 
-def build_laya_assessor(executor: ThreadPoolExecutor, preload: bool = False) -> LayaAssessor:
-    """Build a LayaAssessor. Raises ImportError if laya is not installed."""
+def build_judge_assessor(executor: ThreadPoolExecutor, preload: bool = False) -> JudgeAssessor:
+    """Build a JudgeAssessor. Raises ImportError if laya is not installed."""
     from laya import Router  # noqa: PLC0415
 
     router = Router(preload=preload)
-    logger.info("Laya assessor loaded (preload=%s)", preload)
-    return LayaAssessor(router=router, executor=executor)
+    logger.info("Judge assessor loaded (preload=%s)", preload)
+    return JudgeAssessor(router=router, executor=executor)

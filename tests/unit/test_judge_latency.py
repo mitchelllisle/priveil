@@ -1,15 +1,15 @@
-"""Benchmark: LayaSpanAdvisor latency.
+"""Benchmark: SpanJudge latency.
 
 Measures the wall-clock latency of span verification for a set of realistic
-entity payloads. No real model inference — the advisor backend is mocked so
-we measure the async orchestration, thread-pool dispatch, and fan-out overhead.
+entity payloads. No real model inference — the router is mocked so we measure
+the async orchestration, thread-pool dispatch, and fan-out overhead.
 
 Run with::
 
-    uv run pytest tests/unit/test_laya_advisor_latency.py --benchmark-only -v
+    uv run pytest tests/unit/test_judge_latency.py --benchmark-only -v
 
 For real wall-clock measurements with actual laya inference, set
-PRIVEIL_ADVISOR_BACKEND=laya and point at a running server; see
+PRIVEIL_JUDGE_BACKEND=laya and point at a running server; see
 benchmarks/test_throughput.py for the API-level benchmarks.
 """
 from __future__ import annotations
@@ -22,8 +22,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from priveil.advisor.laya_advisor import LayaSpanAdvisor
 from priveil.domain.entities import Entity, EntityType
+from priveil.judge.judge import SpanJudge
 from priveil.settings import Settings
 
 # ── test fixtures ─────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ def _entity(
     text: str,
     entity_type: EntityType,
     start: int,
-    verification: str = "advisor",
+    verification: str = "judge",
     score: float = 0.85,
 ) -> Entity:
     return Entity(
@@ -56,13 +56,13 @@ def _entity(
 
 # Realistic multi-entity payloads
 _PAYLOADS: dict[str, tuple[str, tuple[Entity, ...]]] = {
-    "single_advisor_span": (
+    "single_judge_span": (
         "Contact Jane Smith at jane.smith@bank.com.au",
         (
             _entity("Jane Smith", EntityType.PERSON, 8),
         ),
     ),
-    "three_advisor_spans": (
+    "three_judge_spans": (
         "Jane Smith (jane@example.com, 0412 345 678) applied for a loan",
         (
             _entity("Jane Smith", EntityType.PERSON, 0),
@@ -70,7 +70,7 @@ _PAYLOADS: dict[str, tuple[str, tuple[Entity, ...]]] = {
             _entity("0412 345 678", EntityType.AU_PHONE, 30),
         ),
     ),
-    "five_advisor_spans": (
+    "five_judge_spans": (
         "John Doe (john@example.com) BSB 062-000 TFN 123 456 782 phone 0412 000 111",
         (
             _entity("John Doe", EntityType.PERSON, 0),
@@ -89,11 +89,11 @@ _PAYLOADS: dict[str, tuple[str, tuple[Entity, ...]]] = {
 }
 
 
-# ── mock advisors ─────────────────────────────────────────────────────────────
+# ── mock judge ────────────────────────────────────────────────────────────────
 
 
-def _laya_advisor(latency_ms: float = 0.0) -> LayaSpanAdvisor:
-    """Laya advisor with a mock router that simulates inference latency."""
+def _span_judge(latency_ms: float = 0.0) -> SpanJudge:
+    """SpanJudge with a mock router that simulates inference latency."""
     executor = ThreadPoolExecutor(max_workers=4)
     s = _settings()
 
@@ -104,35 +104,35 @@ def _laya_advisor(latency_ms: float = 0.0) -> LayaSpanAdvisor:
 
     router = MagicMock()
     router.predict.side_effect = _fake_predict
-    return LayaSpanAdvisor(router=router, settings=s, executor=executor)
+    return SpanJudge(router=router, settings=s, executor=executor)
 
 
 # ── benchmarks ────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("payload_name", list(_PAYLOADS.keys()))
-def test_laya_advisor_overhead(benchmark: Any, payload_name: str) -> None:
-    """Benchmark laya advisor async orchestration (no inference latency)."""
+def test_judge_overhead(benchmark: Any, payload_name: str) -> None:
+    """Benchmark span judge async orchestration (no inference latency)."""
     text, entities = _PAYLOADS[payload_name]
-    advisor = _laya_advisor(latency_ms=0.0)
+    j = _span_judge(latency_ms=0.0)
 
     def run() -> None:
-        asyncio.run(advisor.advise(text, entities))
+        asyncio.run(j.judge(text, entities))
 
     benchmark(run)
 
 
 @pytest.mark.parametrize("payload_name,n_spans", [
-    ("single_advisor_span", 1),
-    ("three_advisor_spans", 3),
-    ("five_advisor_spans", 5),
+    ("single_judge_span", 1),
+    ("three_judge_spans", 3),
+    ("five_judge_spans", 5),
 ])
-def test_laya_simulated_33ms_per_span(benchmark: Any, payload_name: str, n_spans: int) -> None:
-    """Laya at 33ms/span concurrent: total time ≈ 33ms regardless of span count."""
+def test_judge_simulated_33ms_per_span(benchmark: Any, payload_name: str, n_spans: int) -> None:
+    """Judge at 33ms/span concurrent: total time ≈ 33ms regardless of span count."""
     text, entities = _PAYLOADS[payload_name]
-    advisor = _laya_advisor(latency_ms=33.0)
+    j = _span_judge(latency_ms=33.0)
 
     def run() -> None:
-        asyncio.run(advisor.advise(text, entities))
+        asyncio.run(j.judge(text, entities))
 
     benchmark(run)

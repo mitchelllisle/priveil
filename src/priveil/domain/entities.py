@@ -37,5 +37,5 @@ class Entity(BaseModel, frozen=True):
     score: float
     is_pii: bool
     sensitivity: Sensitivity
-    # Set from the recogniser — determines whether this span needs advisor verification.
-    verification: Literal["trust", "advisor"] = "trust"
+    # Set from the recogniser — determines whether this span needs judge verification.
+    verification: Literal["trust", "judge"] = "trust"

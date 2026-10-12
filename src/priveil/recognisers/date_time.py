@@ -11,15 +11,15 @@ from priveil.recognisers.base import GLiNERRecogniser
 class DateTimeRecogniser(GLiNERRecogniser):
     """Detect specific dates, times, or temporal references using GLiNER2.
 
-    Not classified as PII on its own; verification is delegated to advisor because
+    Not classified as PII on its own; verification is delegated to the judge because
     temporal references often need context to determine whether they identify a person.
-    Lower threshold (0.3) to err toward recall given the advisory workflow.
+    Lower threshold (0.3) to err toward recall given the judge workflow.
     """
 
     entity_type: ClassVar[EntityType] = EntityType.DATE_TIME
     is_pii: ClassVar[bool] = False
     sensitivity: ClassVar[Sensitivity] = "low"
-    verification: ClassVar[Literal["trust", "advisor"]] = "advisor"
+    verification: ClassVar[Literal["trust", "judge"]] = "judge"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<DATE>"}
 

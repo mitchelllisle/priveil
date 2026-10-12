@@ -1,6 +1,6 @@
 """FastMCP server and lifespan for priveil.
 
-Wires up detection, pseudonymisation, span advising (laya), and assessment (laya).
+Import ``mcp`` from this module to mount tools.
 """
 
 from __future__ import annotations
@@ -14,10 +14,10 @@ from typing import cast
 
 from presidio_anonymizer import AnonymizerEngine
 
-from priveil.advisor.laya_advisor import AdvisorProtocol
-from priveil.advisor.laya_assessor import LayaAssessor
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.judge.assessor import JudgeAssessor
+from priveil.judge.judge import JudgeProtocol
 from priveil.recognisers.registry import build_operator_configs, build_recognisers
 from priveil.settings import Settings
 
@@ -33,8 +33,8 @@ except ImportError as exc:
 class _State:
     analyser: AsyncAnalyser
     pseudonymiser: AsyncPseudonymiser
-    advisor: AdvisorProtocol | None       # LayaSpanAdvisor or None
-    laya_assessor: LayaAssessor | None    # fast assess path (no API key)
+    judge: JudgeProtocol | None       # SpanJudge or None
+    judge_assessor: JudgeAssessor | None    # judge assess path (no API key)
     executor: ThreadPoolExecutor
 
 
@@ -75,28 +75,28 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
         executor, operator_configs=operator_configs
     )
 
-    # ── Span advisor: laya (fast, local) ──────────────────────────────────────
-    advisor: AdvisorProtocol | None = None
-    ab = settings.advisor_backend
-    if ab in ("laya", "auto"):
+    # ── Span judge ────────────────────────────────────────────────────────────
+    judge: JudgeProtocol | None = None
+    jb = settings.judge_backend
+    if jb in ("laya", "auto"):
         try:
-            from priveil.advisor.laya_advisor import build_laya_advisor
-            advisor = build_laya_advisor(settings, executor)
-            logger.info("MCP: laya span advisor active (advisor_backend=%s).", ab)
+            from priveil.judge.judge import build_span_judge
+            judge = build_span_judge(settings, executor)
+            logger.info("MCP: span judge active (judge_backend=%s).", jb)
         except ImportError:
-            if ab == "laya":
-                logger.error("PRIVEIL_ADVISOR_BACKEND=laya but laya package not installed.")
+            if jb == "laya":
+                logger.error("PRIVEIL_JUDGE_BACKEND=laya but laya package not installed.")
             else:
-                logger.info("MCP: laya not installed; advisor mode will fall back to fast.")
+                logger.info("MCP: laya not installed; judge mode will fall back to fast.")
 
-    # ── Assessor: laya (fast, local) ──────────────────────────────────────────
-    laya_assessor: LayaAssessor | None = None
+    # ── Judge assessor ────────────────────────────────────────────────────────
+    judge_assessor: JudgeAssessor | None = None
     aa = settings.assess_backend
     if aa in ("laya", "auto"):
         try:
-            from priveil.advisor.laya_assessor import build_laya_assessor
-            laya_assessor = build_laya_assessor(executor, preload=settings.laya_preload)
-            logger.info("MCP: laya assessor active (assess_backend=%s).", aa)
+            from priveil.judge.assessor import build_judge_assessor
+            judge_assessor = build_judge_assessor(executor, preload=settings.judge_preload)
+            logger.info("MCP: judge assessor active (assess_backend=%s).", aa)
         except ImportError:
             if aa == "laya":
                 logger.error("PRIVEIL_ASSESS_BACKEND=laya but laya package not installed.")
@@ -106,8 +106,8 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
     state = _State(
         analyser=analyser,
         pseudonymiser=pseudonymiser,
-        advisor=advisor,
-        laya_assessor=laya_assessor,
+        judge=judge,
+        judge_assessor=judge_assessor,
         executor=executor,
     )
     try:
