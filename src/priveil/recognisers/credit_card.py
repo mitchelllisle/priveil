@@ -40,7 +40,7 @@ class CreditCardRecogniser(RegexRecogniser):
     entity_type: ClassVar[EntityType] = EntityType.CREDIT_CARD
     is_pii: ClassVar[bool] = True
     sensitivity: ClassVar[Sensitivity] = "critical"
-    verification: ClassVar[Literal["trust", "advisor"]] = "trust"
+    verification: ClassVar[Literal["trust", "judge"]] = "trust"
     default_operator: ClassVar[str] = "mask"
     default_operator_params: ClassVar[dict[str, object]] = {
         "masking_char": "*",

@@ -121,7 +121,7 @@ class TestObviousDetections:
         entities = await _detect(analyser, "Charge card 5500005555555559 please")
         assert "CREDIT_CARD" in _types(entities)
 
-    # BSB — with context words (score boosted to 0.95, bypasses advisor at 0.9 threshold)
+    # BSB — with context words (score boosted to 0.95, bypasses judge at 0.9 threshold)
     @pytest.mark.parametrize("text", [
         "BSB 062-000 for this transfer",
         "Bank state branch code 062-000 applies",
@@ -177,15 +177,15 @@ class TestTrueNegatives:
         assert "CREDIT_CARD" not in _types(entities), f"Should NOT detect CREDIT_CARD in: {text!r}"
 
     # BSB without context — pattern matches but no context boost; still detected
-    # but at base score 0.8 (routes to advisor in advisor mode). The entity IS
+    # but at base score 0.8 (routes to judge in judge mode). The entity IS
     # returned (fail-open) — the true negative here is the score, not absence.
     async def test_bsb_without_context_has_low_score(self, analyser: AsyncAnalyser) -> None:
         entities = await _detect(analyser, "The sequence 062-000 appears here with no banking context")
         bsbs = [e for e in entities if e.entity_type == EntityType.AU_BSB]
         # BSB format matches; score must be the base score (no context boost)
         assert all(e.score == pytest.approx(0.8) for e in bsbs)
-        # And verification must be "advisor" (routes to LLM for contextual check)
-        assert all(e.verification == "advisor" for e in bsbs)
+        # And verification must be "judge" (routes to LLM for contextual check)
+        assert all(e.verification == "judge" for e in bsbs)
 
     # Purely numeric text — should not trigger PII
     async def test_financial_rates_not_pii(self, analyser: AsyncAnalyser) -> None:
@@ -248,13 +248,13 @@ class TestAmbiguous:
         assert all(not e.is_pii for e in acns)
 
     async def test_bsb_with_context_has_boosted_score(self, analyser: AsyncAnalyser) -> None:
-        # BSB with context word "bsb" → score 0.95 (>= advisor_score_threshold 0.9)
-        # so it bypasses the LLM advisor even though verification="advisor"
+        # BSB with context word "bsb" → score 0.95 (>= judge_score_threshold 0.9)
+        # so it bypasses the LLM judge even though verification="judge"
         entities = await _detect(analyser, "Please transfer to BSB 062-000 account")
         bsbs = [e for e in entities if e.entity_type == EntityType.AU_BSB]
         assert len(bsbs) >= 1
         assert all(e.score >= 0.9 for e in bsbs), "BSB with context should have score ≥ 0.9"
-        assert all(e.verification == "advisor" for e in bsbs)  # recogniser declaration unchanged
+        assert all(e.verification == "judge" for e in bsbs)  # recogniser declaration unchanged
 
     async def test_email_sensitivity_is_medium(self, analyser: AsyncAnalyser) -> None:
         entities = await _detect(analyser, "Contact: admin@example.com")

@@ -21,20 +21,20 @@ class Settings(BaseSettings):
     # Requires: uv sync --extra gliner
     # When gliner2 is not installed, NER recognisers are skipped (regex-only mode).
     gliner2_model: str = "fastino/gliner2-base-v1"
-    # Entities scoring >= this are "certain" and bypass the advisor even when
-    # their recogniser declares verification="advisor".
-    advisor_score_threshold: float = 0.9
-    advisor_context_chars: int = 60
-    # ── Laya span advisor ─────────────────────────────────────────────────────
-    # Backend for mode='advisor' span verification: "auto" | "laya"
+    # Entities scoring >= this are "certain" and bypass the judge even when
+    # their recogniser declares verification="judge".
+    judge_score_threshold: float = 0.9
+    judge_context_chars: int = 60
+    # ── Span judge ───────────────────────────────────────────────────────────
+    # Backend for mode='judge' span verification: "auto" | "laya"
     # "auto" (default): uses laya if the package is installed.
     # "laya" requires laya package (uv sync --extra laya).
-    advisor_backend: str = "auto"
-    # Probability threshold for laya noul answer — spans scoring >= this are kept.
-    laya_pii_threshold: float = 0.5
+    judge_backend: str = "auto"
+    # Probability threshold for the judge noul answer — spans scoring >= this are kept.
+    judge_pii_threshold: float = 0.5
     # Preload laya checkpoints at startup (vs lazy on first request). Set True in production.
-    laya_preload: bool = False
-    # ── Laya assessor ─────────────────────────────────────────────────────────
+    judge_preload: bool = False
+    # ── Judge assessor ────────────────────────────────────────────────────────
     # Backend for /assess: "auto" | "laya"
     # "auto" (default): uses laya if installed, else 503.
     # "laya" requires laya package and returns rule-derived fields (no text generation).

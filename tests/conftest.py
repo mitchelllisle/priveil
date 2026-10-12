@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from priveil.advisor.laya_advisor import AdvisorProtocol, AdvisorResult
+from priveil.judge.judge import JudgeProtocol, JudgeResult
 from priveil.app import create_app
 from priveil.domain.entities import Entity
 from priveil.engine.analyser import AsyncAnalyser
@@ -44,13 +44,13 @@ def pseudonymiser() -> Generator[AsyncPseudonymiser, None, None]:
 
 
 @pytest.fixture(scope="session")
-def advisor_mock() -> AdvisorProtocol:
-    """Pass-through advisor mock — satisfies AdvisorProtocol, applies no real verification."""
-    async def _advise(text: str, entities: tuple[Entity, ...]) -> AdvisorResult:
-        return AdvisorResult(entities=entities, advisor_applied=True)
+def judge_mock() -> JudgeProtocol:
+    """Pass-through judge mock — satisfies JudgeProtocol, applies no real verification."""
+    async def _judge(text: str, entities: tuple[Entity, ...]) -> JudgeResult:
+        return JudgeResult(entities=entities, judge_applied=True)
 
-    mock = MagicMock(spec=AdvisorProtocol)
-    mock.advise = AsyncMock(side_effect=_advise)
+    mock = MagicMock(spec=JudgeProtocol)
+    mock.judge = AsyncMock(side_effect=_judge)
     return mock  # type: ignore[return-value]
 
 
@@ -67,7 +67,7 @@ async def client(test_settings: Settings) -> AsyncGenerator[AsyncClient, None]:
 
 @pytest.fixture
 async def detect_client(test_settings: Settings, analyser: AsyncAnalyser) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser only — no advisor. Tests that advisor mode is silently skipped."""
+    """Analyser only — no judge. Tests that judge mode is silently skipped."""
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -80,7 +80,7 @@ async def pseudonymise_client(
     analyser: AsyncAnalyser,
     pseudonymiser: AsyncPseudonymiser,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser + pseudonymiser, no advisor."""
+    """Analyser + pseudonymiser, no judge."""
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
     app.state.pseudonymiser = pseudonymiser
@@ -89,30 +89,30 @@ async def pseudonymise_client(
 
 
 @pytest.fixture
-async def advised_client(
+async def judged_client(
     test_settings: Settings,
     analyser: AsyncAnalyser,
     pseudonymiser: AsyncPseudonymiser,
-    advisor_mock: AdvisorProtocol,
+    judge_mock: JudgeProtocol,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser + pseudonymiser + pass-through advisor — tests the advisor path."""
+    """Analyser + pseudonymiser + pass-through judge — tests the judge path."""
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
     app.state.pseudonymiser = pseudonymiser
-    app.state.advisor = advisor_mock
+    app.state.judge = judge_mock
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 
 
 @pytest.fixture
-async def laya_assess_client(
+async def judge_assess_client(
     test_settings: Settings,
     analyser: AsyncAnalyser,
 ) -> AsyncGenerator[AsyncClient, None]:
-    """Analyser + mock LayaAssessor — tests the laya-first dispatch path."""
+    """Analyser + mock JudgeAssessor — tests the judge-first dispatch path."""
     from concurrent.futures import ThreadPoolExecutor
 
-    from priveil.advisor.laya_assessor import LayaAssessor
+    from priveil.judge.assessor import JudgeAssessor
 
     router = MagicMock()
     router.predict.return_value = {
@@ -125,11 +125,11 @@ async def laya_assess_client(
         }
     }
     executor = ThreadPoolExecutor(max_workers=1)
-    laya_assessor = LayaAssessor(router=router, executor=executor)
+    judge_assessor = JudgeAssessor(router=router, executor=executor)
 
     app = create_app(settings=test_settings)
     app.state.analyser = analyser
-    app.state.laya_assessor = laya_assessor
+    app.state.judge_assessor = judge_assessor
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
     executor.shutdown(wait=False)

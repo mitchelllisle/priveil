@@ -38,7 +38,7 @@ class AUABNRecogniser(RegexRecogniser):
     entity_type: ClassVar[EntityType] = EntityType.AU_ABN
     is_pii: ClassVar[bool] = False
     sensitivity: ClassVar[Sensitivity] = "low"
-    verification: ClassVar[Literal["trust", "advisor"]] = "trust"
+    verification: ClassVar[Literal["trust", "judge"]] = "trust"
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "** *** *** ***"}
 

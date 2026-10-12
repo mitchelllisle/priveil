@@ -1,8 +1,7 @@
-"""Unit tests for LayaSpanAdvisor.
+"""Unit tests for SpanJudge.
 
-Tests mirror the structure of test_span_advisor_routing.py so the two backends
-can be compared side-by-side. All tests mock the laya Router to avoid loading
-any checkpoints — only the advisor logic itself is exercised.
+All tests mock the laya Router to avoid loading any checkpoints —
+only the judge logic itself is exercised.
 """
 from __future__ import annotations
 
@@ -11,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from priveil.advisor.laya_advisor import AdvisorResult, LayaSpanAdvisor
+from priveil.judge.judge import JudgeResult, SpanJudge
 from priveil.domain.entities import Entity, EntityType
 from priveil.settings import Settings
 
@@ -67,108 +66,108 @@ def _make_router(prob: float = 0.8) -> Any:
     return router
 
 
-def _advisor(*, prob: float = 0.8, **settings_kwargs: object) -> LayaSpanAdvisor:
+def _judge(*, prob: float = 0.8, **settings_kwargs: object) -> SpanJudge:
     from concurrent.futures import ThreadPoolExecutor
 
     executor = ThreadPoolExecutor(max_workers=1)
     s = _settings(**settings_kwargs)
-    return LayaSpanAdvisor(router=_make_router(prob), settings=s, executor=executor)
+    return SpanJudge(router=_make_router(prob), settings=s, executor=executor)
 
 
 # ── routing: trust bypass ──────────────────────────────────────────────────────
 
 
 class TestTrustBypass:
-    """Trust-verified entities must bypass laya exactly as they bypass the LLM advisor."""
+    """Trust-verified entities must bypass the judge."""
 
-    async def test_all_trust_entities_bypass_laya(self) -> None:
-        adv = _advisor()
+    async def test_all_trust_entities_bypass_judge(self) -> None:
+        j = _judge()
         entities = (
             _entity(entity_type=EntityType.EMAIL_ADDRESS, verification="trust"),
             _entity(entity_type=EntityType.AU_TFN, text="123 456 782", start=20, score=0.95, verification="trust"),
         )
-        result = await adv.advise("user@example.com some text 123 456 782", entities)
-        adv._router.predict.assert_not_called()
-        assert result.advisor_applied is False
+        result = await j.judge("user@example.com some text 123 456 782", entities)
+        j._router.predict.assert_not_called()
+        assert result.judge_applied is False
         assert len(result.entities) == 2
 
-    async def test_high_score_entity_bypasses_laya(self) -> None:
-        """Entities at or above advisor_score_threshold bypass laya even when advisor-routed."""
-        adv = _advisor()
+    async def test_high_score_entity_bypasses_judge(self) -> None:
+        """Entities at or above judge_score_threshold bypass even when judge-routed."""
+        j = _judge()
         s = _settings()
-        entity = _entity(verification="advisor", score=s.advisor_score_threshold)
-        result = await adv.advise("some text", (entity,))
-        adv._router.predict.assert_not_called()
-        assert result.advisor_applied is False
+        entity = _entity(verification="judge", score=s.judge_score_threshold)
+        result = await j.judge("some text", (entity,))
+        j._router.predict.assert_not_called()
+        assert result.judge_applied is False
         assert len(result.entities) == 1
 
     async def test_empty_entities_returns_empty(self) -> None:
-        adv = _advisor()
-        result = await adv.advise("some text", ())
-        adv._router.predict.assert_not_called()
-        assert result.advisor_applied is False
+        j = _judge()
+        result = await j.judge("some text", ())
+        j._router.predict.assert_not_called()
+        assert result.judge_applied is False
         assert len(result.entities) == 0
 
 
-# ── laya verification routing ──────────────────────────────────────────────────
+# ── judge verification routing ────────────────────────────────────────────────
 
 
-class TestLayaVerification:
-    """Advisor-tier entities should be submitted to laya for verification."""
+class TestJudgeVerification:
+    """Judge-tier entities should be submitted to the judge for verification."""
 
-    async def test_advisor_entity_above_threshold_is_kept(self) -> None:
-        adv = _advisor(prob=0.9)  # well above 0.5 default threshold
-        entity = _entity(verification="advisor", score=0.5)
-        result = await adv.advise("user@example.com", (entity,))
-        adv._router.predict.assert_called_once()
-        assert result.advisor_applied is True
+    async def test_judge_entity_above_threshold_is_kept(self) -> None:
+        j = _judge(prob=0.9)  # well above 0.5 default threshold
+        entity = _entity(verification="judge", score=0.5)
+        result = await j.judge("user@example.com", (entity,))
+        j._router.predict.assert_called_once()
+        assert result.judge_applied is True
         assert len(result.entities) == 1
 
-    async def test_advisor_entity_below_threshold_is_dropped(self) -> None:
-        adv = _advisor(prob=0.2)  # below 0.5 threshold
-        entity = _entity(verification="advisor", score=0.5)
-        result = await adv.advise("user@example.com", (entity,))
-        assert result.advisor_applied is True
+    async def test_judge_entity_below_threshold_is_dropped(self) -> None:
+        j = _judge(prob=0.2)  # below 0.5 threshold
+        entity = _entity(verification="judge", score=0.5)
+        result = await j.judge("user@example.com", (entity,))
+        assert result.judge_applied is True
         assert len(result.entities) == 0
 
     async def test_custom_threshold_respected(self) -> None:
-        """laya_pii_threshold setting gates which spans are kept."""
-        adv = _advisor(prob=0.6, laya_pii_threshold=0.7)
-        entity = _entity(verification="advisor", score=0.5)
-        result = await adv.advise("user@example.com", (entity,))
+        """judge_pii_threshold setting gates which spans are kept."""
+        j = _judge(prob=0.6, judge_pii_threshold=0.7)
+        entity = _entity(verification="judge", score=0.5)
+        result = await j.judge("user@example.com", (entity,))
         # prob=0.6 is below threshold=0.7, so span dropped
-        assert result.advisor_applied is True
+        assert result.judge_applied is True
         assert len(result.entities) == 0
 
     async def test_multiple_spans_run_concurrently(self) -> None:
-        """Multiple advisor spans should all be verified (router called per span)."""
-        adv = _advisor(prob=0.8)
+        """Multiple judge spans should all be verified (router called per span)."""
+        j = _judge(prob=0.8)
         entities = (
-            _entity(text="user1@example.com", verification="advisor", score=0.5),
-            _entity(text="user2@example.com", start=20, verification="advisor", score=0.5),
-            _entity(text="user3@example.com", start=40, verification="advisor", score=0.5),
+            _entity(text="user1@example.com", verification="judge", score=0.5),
+            _entity(text="user2@example.com", start=20, verification="judge", score=0.5),
+            _entity(text="user3@example.com", start=40, verification="judge", score=0.5),
         )
-        result = await adv.advise("user1@example.com  user2@example.com  user3@example.com", entities)
-        assert adv._router.predict.call_count == 3
-        assert result.advisor_applied is True
+        result = await j.judge("user1@example.com  user2@example.com  user3@example.com", entities)
+        assert j._router.predict.call_count == 3
+        assert result.judge_applied is True
         assert len(result.entities) == 3
 
-    async def test_mixed_trust_and_advisor_entities(self) -> None:
-        """Trust entities pass through; advisor entities go to laya."""
-        adv = _advisor(prob=0.8)
+    async def test_mixed_trust_and_judge_entities(self) -> None:
+        """Trust entities pass through; judge entities go to the router."""
+        j = _judge(prob=0.8)
         entities = (
             _entity(entity_type=EntityType.AU_TFN, text="123 456 782", start=0, verification="trust"),
             _entity(
                 entity_type=EntityType.EMAIL_ADDRESS,
                 text="user@example.com",
                 start=20,
-                verification="advisor",
+                verification="judge",
                 score=0.5,
             ),
         )
-        result = await adv.advise("123 456 782 user@example.com", entities)
-        adv._router.predict.assert_called_once()
-        assert result.advisor_applied is True
+        result = await j.judge("123 456 782 user@example.com", entities)
+        j._router.predict.assert_called_once()
+        assert result.judge_applied is True
         assert len(result.entities) == 2
 
 
@@ -176,20 +175,20 @@ class TestLayaVerification:
 
 
 class TestFailOpen:
-    """Laya errors must fail-open (keep all spans), mirroring the LLM advisor."""
+    """Router errors must fail-open (keep all spans)."""
 
-    async def test_laya_exception_fails_open(self) -> None:
+    async def test_exception_fails_open(self) -> None:
         from concurrent.futures import ThreadPoolExecutor
 
         executor = ThreadPoolExecutor(max_workers=1)
         router = MagicMock()
         router.predict.side_effect = RuntimeError("checkpoint unavailable")
-        adv = LayaSpanAdvisor(router=router, settings=_settings(), executor=executor)
-        entity = _entity(verification="advisor", score=0.5)
-        result = await adv.advise("user@example.com", (entity,))
-        # Should not raise; spans kept; advisor_applied=False (fail-open = not verified)
+        j = SpanJudge(router=router, settings=_settings(), executor=executor)
+        entity = _entity(verification="judge", score=0.5)
+        result = await j.judge("user@example.com", (entity,))
+        # Should not raise; spans kept; judge_applied=False (fail-open = not verified)
         assert len(result.entities) == 1
-        assert result.advisor_applied is False
+        assert result.judge_applied is False
 
     async def test_partial_failure_keeps_failed_span(self) -> None:
         """If one span fails, that span is kept; others proceed normally."""
@@ -207,60 +206,60 @@ class TestFailOpen:
         executor = ThreadPoolExecutor(max_workers=1)
         router = MagicMock()
         router.predict.side_effect = _flaky_predict
-        adv = LayaSpanAdvisor(router=router, settings=_settings(), executor=executor)
+        j = SpanJudge(router=router, settings=_settings(), executor=executor)
         entities = (
-            _entity(text="span1@example.com", verification="advisor", score=0.5),
-            _entity(text="span2@example.com", start=20, verification="advisor", score=0.5),
+            _entity(text="span1@example.com", verification="judge", score=0.5),
+            _entity(text="span2@example.com", start=20, verification="judge", score=0.5),
         )
-        result = await adv.advise("span1@example.com span2@example.com", entities)
+        result = await j.judge("span1@example.com span2@example.com", entities)
         # span1: kept (fail-open); span2: prob 0.1 < 0.5, dropped
-        # advisor_applied=False because span1 failed — verification was not clean
+        # judge_applied=False because span1 failed — verification was not clean
         assert len(result.entities) == 1
         assert result.entities[0].text == "span1@example.com"
-        assert result.advisor_applied is False
+        assert result.judge_applied is False
 
 
 # ── output shape ──────────────────────────────────────────────────────────────
 
 
 class TestOutputShape:
-    """AdvisorResult shape must match what routes expect."""
+    """JudgeResult shape must match what routes expect."""
 
-    async def test_result_is_advisor_result(self) -> None:
-        adv = _advisor()
-        result = await adv.advise("user@example.com", (_entity(verification="trust"),))
-        assert isinstance(result, AdvisorResult)
+    async def test_result_is_judge_result(self) -> None:
+        j = _judge()
+        result = await j.judge("user@example.com", (_entity(verification="trust"),))
+        assert isinstance(result, JudgeResult)
         assert isinstance(result.entities, tuple)
-        assert isinstance(result.advisor_applied, bool)
+        assert isinstance(result.judge_applied, bool)
 
     async def test_merged_result_sorted_by_start_offset(self) -> None:
-        adv = _advisor(prob=0.9)
+        j = _judge(prob=0.9)
         entities = (
             _entity(
                 entity_type=EntityType.EMAIL_ADDRESS,
                 text="b@example.com",
                 start=20,
-                verification="advisor",
+                verification="judge",
                 score=0.5,
             ),
             _entity(entity_type=EntityType.AU_TFN, text="123 456 782", start=0, verification="trust"),
         )
-        result = await adv.advise("123 456 782 b@example.com", entities)
+        result = await j.judge("123 456 782 b@example.com", entities)
         starts = [e.start for e in result.entities]
         assert starts == sorted(starts), "Result entities must be sorted by start offset"
 
 
-# ── build_laya_advisor ────────────────────────────────────────────────────────
+# ── build_span_judge ──────────────────────────────────────────────────────────
 
 
-class TestBuildLayaAdvisor:
-    """build_laya_advisor raises ImportError when laya is not installed."""
+class TestBuildSpanJudge:
+    """build_span_judge raises ImportError when laya is not installed."""
 
     def test_raises_import_error_when_laya_missing(self) -> None:
         from concurrent.futures import ThreadPoolExecutor
 
         with patch.dict("sys.modules", {"laya": None}):  # type: ignore[arg-type]
             with pytest.raises((ImportError, TypeError)):
-                from priveil.advisor.laya_advisor import build_laya_advisor
+                from priveil.judge.judge import build_span_judge
 
-                build_laya_advisor(_settings(), ThreadPoolExecutor(max_workers=1))
+                build_span_judge(_settings(), ThreadPoolExecutor(max_workers=1))

@@ -27,7 +27,7 @@ except ImportError:
 
 @pytest.fixture(scope="session")
 def engine_state() -> Generator[_State, None, None]:
-    """Real analyser + pseudonymiser, no advisor model.
+    """Real analyser + pseudonymiser, no judge model.
 
     Session-scoped so recognisers load once. Executor is shut down on teardown.
     """
@@ -37,8 +37,8 @@ def engine_state() -> Generator[_State, None, None]:
     state = _State(
         analyser=AsyncAnalyser(recognisers, executor),
         pseudonymiser=AsyncPseudonymiser(AnonymizerEngine(), executor, operator_configs=operator_configs),  # type: ignore[no-untyped-call]
-        advisor=None,
-        laya_assessor=None,
+        judge=None,
+        judge_assessor=None,
         executor=executor,
     )
     yield state

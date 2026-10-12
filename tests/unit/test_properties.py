@@ -116,4 +116,4 @@ def test_every_regex_recogniser_has_valid_sensitivity() -> None:
         assert isinstance(rec, BaseRecogniser)
         assert rec.sensitivity in {"low", "medium", "high", "critical"}
         assert isinstance(rec.is_pii, bool)
-        assert rec.verification in {"trust", "advisor"}
+        assert rec.verification in {"trust", "judge"}

@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter
 
-from priveil.api.deps import AdvisorDep, AnalyserDep, PseudonymiserDep
+from priveil.api.deps import JudgeDep, AnalyserDep, PseudonymiserDep
 from priveil.api.models import Meta, PriveilResponse, RequestMeta, ResponseMeta
 from priveil.domain.detection import DetectionData, DetectionRequest
 from priveil.domain.pseudonymisation import PseudonymisationData, PseudonymisationRequest
@@ -16,13 +16,13 @@ async def pseudonymise(
     request: PseudonymisationRequest,
     analyser: AnalyserDep,
     pseudonymiser: PseudonymiserDep,
-    advisor: AdvisorDep,
+    judge: JudgeDep,
 ) -> PriveilResponse[PseudonymisationData]:
     """Pseudonymise PII entities in text using the configured operator strategies.
 
     If detections are omitted, detection runs automatically.
-    When mode='advisor' (default) and an advisor model is configured, detections are
-    refined by an LLM before pseudonymisation. mode='fast' skips the LLM entirely.
+    When mode='judge' (default) and a judge is configured, detections are
+    refined before pseudonymisation. mode='fast' skips the judge entirely.
     Use operator_overrides to change the default strategy per entity type.
 
     Pass ``body["data"]`` from a prior ``/detect`` response as ``detections``.
@@ -36,15 +36,15 @@ async def pseudonymise(
 
     input_hash = detections.input_hash
     mode_used = request.mode
-    advisor_applied = False
-    if request.mode == "advisor" and advisor is not None:
-        refined = await advisor.advise(request.text, detections.entities)
+    judge_applied = False
+    if request.mode == "judge" and judge is not None:
+        refined = await judge.judge(request.text, detections.entities)
         detections = detections.model_copy(update={"entities": refined.entities})
-        advisor_applied = refined.advisor_applied
-    elif request.mode == "advisor":
+        judge_applied = refined.judge_applied
+    elif request.mode == "judge":
         mode_used = "fast"
         logger.warning(
-            "mode='advisor' requested for /pseudonymise but PRIVEIL_ADVISOR_MODEL is unset;"
+            "mode='judge' requested for /pseudonymise but no judge is configured;"
             " falling back to mode='fast'."
         )
 
@@ -53,7 +53,7 @@ async def pseudonymise(
             text=request.text,
             detections=DetectionData(entities=detections.entities),
             operator_overrides=request.operator_overrides,
-            mode="fast",  # LLM refinement already applied above; do not re-run
+            mode="fast",  # judge refinement already applied above; do not re-run
         )
     )
     return PriveilResponse(
@@ -61,5 +61,5 @@ async def pseudonymise(
             request=RequestMeta(mode=request.mode),
             response=ResponseMeta(mode=mode_used, input_hash=input_hash),
         ),
-        data=result.model_copy(update={"advisor_applied": advisor_applied}),
+        data=result.model_copy(update={"judge_applied": judge_applied}),
     )
