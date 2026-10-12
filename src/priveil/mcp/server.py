@@ -14,10 +14,10 @@ from typing import cast
 
 from presidio_anonymizer import AnonymizerEngine
 
-from priveil.judge.judge import JudgeProtocol
-from priveil.judge.assessor import JudgeAssessor
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.judge.assessor import JudgeAssessor
+from priveil.judge.judge import JudgeProtocol
 from priveil.recognisers.registry import build_operator_configs, build_recognisers
 from priveil.settings import Settings
 

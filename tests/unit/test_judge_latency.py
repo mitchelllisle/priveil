@@ -22,8 +22,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from priveil.judge.judge import SpanJudge
 from priveil.domain.entities import Entity, EntityType
+from priveil.judge.judge import SpanJudge
 from priveil.settings import Settings
 
 # ── test fixtures ─────────────────────────────────────────────────────────────

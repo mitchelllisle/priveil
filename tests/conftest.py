@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from priveil.judge.judge import JudgeProtocol, JudgeResult
 from priveil.app import create_app
 from priveil.domain.entities import Entity
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.judge.judge import JudgeProtocol, JudgeResult
 from priveil.recognisers.registry import build_operator_configs, build_recognisers
 from priveil.settings import Settings
 

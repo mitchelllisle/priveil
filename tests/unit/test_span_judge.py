@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from priveil.judge.judge import JudgeResult, SpanJudge
 from priveil.domain.entities import Entity, EntityType
+from priveil.judge.judge import JudgeResult, SpanJudge
 from priveil.settings import Settings
 
 # ── test helpers ──────────────────────────────────────────────────────────────

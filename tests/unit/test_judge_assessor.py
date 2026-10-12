@@ -10,10 +10,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from priveil.judge.assessor import JudgeAssessor, _derive_assess_result
 from priveil.domain.assessment import AssessmentData
 from priveil.domain.detection import DetectionResult
 from priveil.domain.entities import Entity, EntityType
+from priveil.judge.assessor import JudgeAssessor, _derive_assess_result
 
 # ── test helpers ──────────────────────────────────────────────────────────────
 

@@ -2,10 +2,10 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Request
 
-from priveil.judge.judge import JudgeProtocol
-from priveil.judge.assessor import JudgeAssessor
 from priveil.engine.analyser import AsyncAnalyser
 from priveil.engine.pseudonymiser import AsyncPseudonymiser
+from priveil.judge.assessor import JudgeAssessor
+from priveil.judge.judge import JudgeProtocol
 
 
 def _get_analyser(request: Request) -> AsyncAnalyser:
