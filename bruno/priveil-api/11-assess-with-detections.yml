@@ -1,0 +1,41 @@
+info:
+  name: Assess (With Detections)
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: "{{baseUrl}}/assess"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "text": "Contact jane@example.com",
+        "detections": {
+          "entities": [
+            {
+              "text": "jane@example.com",
+              "entity_type": "EMAIL_ADDRESS",
+              "start": 8,
+              "end": 24,
+              "score": 0.86,
+              "is_pii": true,
+              "sensitivity": "medium"
+            }
+          ],
+          "input_hash": "sha256:paste-from-detect"
+        },
+        "context": "Australian retail banking document"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

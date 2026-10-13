@@ -17,7 +17,7 @@ _DEFAULT_OPERATOR_CONFIGS: dict[str, tuple[str, dict[str, object]]] = {
     "PHONE_NUMBER": ("replace", {"new_value": "<PHONE>"}),
     "CREDIT_CARD": ("mask", {"masking_char": "*", "chars_to_mask": 12, "from_end": False}),
     "LOCATION": ("replace", {"new_value": "<LOCATION>"}),
-    "DATE_TIME": ("replace", {"new_value": "<DATE>"}),
+    "DATE_OF_BIRTH": ("replace", {"new_value": "<DOB>"}),
     "NRP": ("replace", {"new_value": "<NRP>"}),
     "AU_TFN": ("replace", {"new_value": "***-***-***"}),
     "AU_ABN": ("replace", {"new_value": "** *** *** ***"}),

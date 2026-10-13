@@ -4,7 +4,7 @@ Four public classes are exported:
 - Span          — a detected text span with position and score
 - BaseRecogniser — abstract interface every recogniser implements
 - RegexRecogniser — base for pattern-based recognisers with optional validation
-- GLiNERRecogniser — base for GLiNER2-powered NER recognisers
+- NERRecogniser — base for NER model-powered recognisers
 """
 
 from __future__ import annotations
@@ -38,6 +38,9 @@ class BaseRecogniser(ABC):
     verification: ClassVar[Literal["trust", "judge"]]
     default_operator: ClassVar[str]          # "replace" | "mask" | "redact" | "hash"
     default_operator_params: ClassVar[dict[str, object]]
+    # Higher priority wins when spans overlap. Deterministic (regex/checksum)
+    # recognisers take priority over probabilistic NER models.
+    priority: ClassVar[int] = 0
 
     @abstractmethod
     def detect(self, text: str) -> list[Span]:
@@ -58,6 +61,7 @@ class RegexRecogniser(BaseRecogniser, ABC):
 
     patterns: ClassVar[list[re.Pattern[str]]]
     context_words: ClassVar[list[str]] = []
+    priority: ClassVar[int] = 1  # beats NERRecogniser (0) on overlapping spans
 
     _BASE_SCORE: ClassVar[float] = 0.8
     _CONTEXT_BOOST: ClassVar[float] = 0.15
@@ -128,42 +132,54 @@ def _dedup_overlapping(spans: list[Span]) -> list[Span]:
     return result
 
 
-class GLiNERRecogniser(BaseRecogniser, ABC):
-    """Base for GLiNER2-powered NER recognisers.
+class NERRecogniser(BaseRecogniser, ABC):
+    """Base for NER model-powered recognisers.
 
     Subclasses declare:
-    - ``gliner_labels``: mapping of GLiNER label key → human description fed to the model.
-    - ``gliner_threshold``: minimum confidence score for a detection to be kept.
+    - ``ner_labels``: mapping of NER label key → human description fed to the model.
+    - ``ner_threshold``: minimum confidence score for a detection to be kept.
 
-    The constructor receives the shared GLiNER2 model instance.
+    The constructor receives the shared NER model instance.
     """
 
-    gliner_labels: ClassVar[dict[str, str]]
-    gliner_threshold: ClassVar[float] = 0.5
+    ner_labels: ClassVar[dict[str, str]]
+    ner_threshold: ClassVar[float] = 0.5
+    min_span_chars: ClassVar[int] = 0
+    denylist: ClassVar[frozenset[str]] = frozenset()
+    # Neural models return overconfident scores (1.0) even for FPs. Cap score
+    # below judge_score_threshold (default 0.9) so every verification="judge"
+    # NER entity always reaches laya rather than being bypassed as "certain".
+    max_score: ClassVar[float] = 0.89
 
-    def __init__(self, model: Any) -> None:  # conduit: Any — gliner2 ships no stubs; model is GLiNER2 at runtime
+    def __init__(self, model: Any) -> None:  # conduit: Any — NER model ships no stubs at runtime
         self._model = model
 
     def detect(self, text: str) -> list[Span]:
-        result = self._model.extract_entities_long(
+        result = self._model.extract_entities(
             text,
-            self.gliner_labels,
-            chunk_size=384,
-            chunk_overlap=64,
+            list(self.ner_labels.keys()),
+            threshold=self.ner_threshold,
+            include_confidence=True,
             include_spans=True,
-            threshold=self.gliner_threshold,
         )
 
         spans: list[Span] = []
         entities_by_label: dict[str, list[dict[str, Any]]] = result.get("entities", {})
 
-        for label_key in self.gliner_labels:
+        for label_key in self.ner_labels:
             for e in entities_by_label.get(label_key, []):
+                conf: float = e.get("confidence", 0.8)
+                if conf < self.ner_threshold:
+                    continue
+                if (e["end"] - e["start"]) < self.min_span_chars:
+                    continue
+                if e["text"].lower() in self.denylist:
+                    continue
                 spans.append(Span(
                     text=e["text"],
                     start=e["start"],
                     end=e["end"],
-                    score=e.get("confidence", 0.8),
+                    score=min(conf, self.max_score),
                 ))
 
         spans.sort(key=lambda s: s.start)

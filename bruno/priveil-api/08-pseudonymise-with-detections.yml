@@ -1,0 +1,41 @@
+info:
+  name: Pseudonymise (With Detections)
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: "{{baseUrl}}/pseudonymise"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "text": "My TFN is 123 456 782",
+        "detections": {
+          "entities": [
+            {
+              "text": "123 456 782",
+              "entity_type": "AU_TFN",
+              "start": 10,
+              "end": 21,
+              "score": 0.99,
+              "is_pii": true,
+              "sensitivity": "critical"
+            }
+          ],
+          "input_hash": "sha256:paste-from-detect"
+        },
+        "mode": "fast"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

@@ -1,0 +1,31 @@
+info:
+  name: Pseudonymise (Operator Overrides)
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/pseudonymise"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Accept
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "text": "My TFN is 123 456 782 and contact is jane@example.com",
+        "operator_overrides": {
+          "AU_TFN": "mask",
+          "EMAIL_ADDRESS": "hash"
+        },
+        "mode": "judge"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true

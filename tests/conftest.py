@@ -24,7 +24,7 @@ def test_settings() -> Settings:
 
 @pytest.fixture(scope="session")
 def analyser() -> Generator[AsyncAnalyser, None, None]:
-    """Build the detection engine once per session — regex-only (no GLiNER2 in tests)."""
+    """Build the detection engine once per session — regex-only (no NER model in tests)."""
     executor = ThreadPoolExecutor(max_workers=2)
     recognisers = build_recognisers()
     yield AsyncAnalyser(recognisers, executor)
