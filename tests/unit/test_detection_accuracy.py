@@ -1,7 +1,7 @@
 """Detection accuracy tests — obvious patterns, ambiguous near-misses, and true negatives.
 
 Exercises the regex-only recogniser stack via the session-scoped ``analyser`` fixture
-(no GLiNER2, so PERSON / LOCATION / DATE_TIME entities are not tested here).
+(no NER model, so PERSON / LOCATION / DATE_TIME entities are not tested here).
 
 Structure
 ---------

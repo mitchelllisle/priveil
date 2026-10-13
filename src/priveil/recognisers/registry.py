@@ -19,14 +19,14 @@ from priveil.recognisers.person import PersonRecogniser
 from priveil.recognisers.phone import PhoneRecogniser
 
 
-def build_recognisers(gliner_model: Any | None = None) -> list[BaseRecogniser]:
+def build_recognisers(ner_model: Any | None = None) -> list[BaseRecogniser]:
     """Build the ordered list of active recognisers.
 
     Order matters — higher-specificity recognisers (checksum-validated) come first so
     they take precedence when a span could match multiple entity types.
 
     Args:
-        gliner_model: A GLiNER2 model instance. When provided, NER-based recognisers
+        ner_model: A NER model instance. When provided, NER-based recognisers
             (PERSON, LOCATION, DATE_OF_BIRTH) are included. Pass ``None`` to run in
             fast/regex-only mode — useful for unit tests and lightweight deployments.
 
@@ -47,11 +47,11 @@ def build_recognisers(gliner_model: Any | None = None) -> list[BaseRecogniser]:
         PhoneRecogniser(),
     ]
 
-    if gliner_model is not None:
+    if ner_model is not None:
         recognisers.extend([
-            PersonRecogniser(gliner_model),
-            LocationRecogniser(gliner_model),
-            DateOfBirthRecogniser(gliner_model),
+            PersonRecogniser(ner_model),
+            LocationRecogniser(ner_model),
+            DateOfBirthRecogniser(ner_model),
         ])
 
     return recognisers

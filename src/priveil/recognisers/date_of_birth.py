@@ -1,15 +1,15 @@
-"""Date of birth recogniser backed by GLiNER2."""
+"""Date of birth recogniser backed by a NER model."""
 
 from __future__ import annotations
 
 from typing import ClassVar, Literal
 
 from priveil.domain.entities import EntityType, Sensitivity
-from priveil.recognisers.base import GLiNERRecogniser
+from priveil.recognisers.base import NERRecogniser
 
 
-class DateOfBirthRecogniser(GLiNERRecogniser):
-    """Detect dates of birth using GLiNER2.
+class DateOfBirthRecogniser(NERRecogniser):
+    """Detect dates of birth using a NER model.
 
     Targets personal birth dates only — the label is specific enough that
     scheduling dates ("let's meet on the 2nd") are not detected. Typical
@@ -27,7 +27,7 @@ class DateOfBirthRecogniser(GLiNERRecogniser):
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<DOB>"}
 
-    gliner_labels: ClassVar[dict[str, str]] = {
+    ner_labels: ClassVar[dict[str, str]] = {
         "date_of_birth": "A person's date of birth or personal birth date",
     }
-    gliner_threshold: ClassVar[float] = 0.5
+    ner_threshold: ClassVar[float] = 0.5

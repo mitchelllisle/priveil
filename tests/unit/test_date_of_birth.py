@@ -1,7 +1,7 @@
 """Unit tests for DateOfBirthRecogniser.
 
 Verifies that personal birth dates are detected and scheduling/calendar
-dates are not, using a mock model to avoid loading GLiNER2 weights.
+dates are not, using a mock model to avoid loading NER model weights.
 """
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ import pytest
 
 from priveil.domain.entities import EntityType
 from priveil.recognisers.date_of_birth import DateOfBirthRecogniser
-
 
 # ── mock helpers ──────────────────────────────────────────────────────────────
 
@@ -95,7 +94,7 @@ class TestDetectedAsBirthDate:
 
 class TestNotDetectedAsScheduling:
     """Meeting/scheduling dates must not appear — the label is specific enough
-    that the real GLiNER2 model returns nothing for these. Tests use an empty
+    that the real NER model returns nothing for these. Tests use an empty
     hits mock to document the contract."""
 
     def test_meeting_date_no_year(self) -> None:
@@ -124,7 +123,7 @@ class TestNotDetectedAsScheduling:
 
 
 class TestThreshold:
-    """Spans below gliner_threshold must be filtered out."""
+    """Spans below ner_threshold must be filtered out."""
 
     def test_low_confidence_hit_dropped(self) -> None:
         """Confidence 0.3 < threshold 0.5 — must be dropped."""
@@ -143,4 +142,4 @@ class TestThreshold:
         r = _recogniser({"date_of_birth": [_dob_hit("12/06/1990", 5, conf=0.9)]})
         spans = r.detect("DOB: 12/06/1990")
         assert len(spans) == 1
-        assert spans[0].score == pytest.approx(0.89)  # capped by GLiNERRecogniser.max_score
+        assert spans[0].score == pytest.approx(0.89)  # capped by NERRecogniser.max_score

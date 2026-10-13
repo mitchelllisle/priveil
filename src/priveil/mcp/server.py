@@ -46,11 +46,11 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
     settings = Settings()
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
 
-    gliner_model = None
+    ner_model = None
     try:
         from gliner2 import GLiNER2
-        gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
-        logger.info("GLiNER2 model loaded for MCP server.")
+        ner_model = GLiNER2.from_pretrained(settings.ner_model)
+        logger.info("NER model loaded for MCP server.")
     except ImportError:
         logger.info(
             "gliner2 not installed — PERSON, LOCATION, DATE_TIME detection disabled. "
@@ -58,11 +58,11 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
         )
     except Exception:
         logger.exception(
-            "GLiNER2 model '%s' failed to load — continuing with regex-only detection.",
-            settings.gliner2_model,
+            "NER model '%s' failed to load — continuing with regex-only detection.",
+            settings.ner_model,
         )
 
-    recognisers = build_recognisers(gliner_model=gliner_model)
+    recognisers = build_recognisers(ner_model=ner_model)
     audit_hash_key = (
         settings.audit_hash_key.get_secret_value().encode()
         if settings.audit_hash_key

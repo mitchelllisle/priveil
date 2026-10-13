@@ -4,7 +4,7 @@ Replaces the previous Presidio + spaCy pipeline.  Detection is now driven
 entirely by ``BaseRecogniser`` subclasses:
 
 - ``RegexRecogniser``   — pattern matching + optional checksum (AU_TFN, email, …)
-- ``GLiNERRecogniser``  — GLiNER2-powered NER (PERSON, LOCATION, DATE_TIME, …)
+- ``NERRecogniser``  — NER model-powered NER (PERSON, LOCATION, DATE_TIME, …)
 
 All recognisers run concurrently in a shared thread-pool executor (CPU-bound).
 Overlapping spans from different recognisers are deduplicated by keeping the
@@ -41,7 +41,7 @@ def _span_rank(span: Span, rec: BaseRecogniser) -> tuple[int, float, int]:
 
     Higher priority beats a higher score — deterministic regex/checksum
     recognisers (priority=1) always win over probabilistic NER (priority=0)
-    on the same span, preventing GLiNER2 from overriding a validated match.
+    on the same span, preventing the NER model from overriding a validated match.
     """
     return (rec.priority, span.score, span.end - span.start)
 

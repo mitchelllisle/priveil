@@ -1,18 +1,18 @@
-"""Geographic location recogniser backed by GLiNER2."""
+"""Geographic location recogniser backed by a NER model."""
 
 from __future__ import annotations
 
 from typing import ClassVar, Literal
 
 from priveil.domain.entities import EntityType, Sensitivity
-from priveil.recognisers.base import GLiNERRecogniser
+from priveil.recognisers.base import NERRecogniser
 
 
-class LocationRecogniser(GLiNERRecogniser):
-    """Detect physical addresses, suburbs, cities, and geographic places using GLiNER2.
+class LocationRecogniser(NERRecogniser):
+    """Detect physical addresses, suburbs, cities, and geographic places using a NER model.
 
     threshold=0.7: eliminates low-confidence location guesses on financial codes.
-    min_span_chars=5: drops 3-letter acronyms (TFN, ABN, BSB) that GLiNER2
+    min_span_chars=5: drops 3-letter acronyms (TFN, ABN, BSB) that the NER model
     confuses for place abbreviations.
     """
 
@@ -23,8 +23,8 @@ class LocationRecogniser(GLiNERRecogniser):
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<LOCATION>"}
 
-    gliner_labels: ClassVar[dict[str, str]] = {
+    ner_labels: ClassVar[dict[str, str]] = {
         "location": "Physical address, suburb, city, or geographic place",
     }
-    gliner_threshold: ClassVar[float] = 0.7
+    ner_threshold: ClassVar[float] = 0.7
     min_span_chars: ClassVar[int] = 5

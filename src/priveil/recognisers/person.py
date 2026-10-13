@@ -1,18 +1,18 @@
-"""Person name recogniser backed by GLiNER2."""
+"""Person name recogniser backed by a NER model."""
 
 from __future__ import annotations
 
 from typing import ClassVar, Literal
 
 from priveil.domain.entities import EntityType, Sensitivity
-from priveil.recognisers.base import GLiNERRecogniser
+from priveil.recognisers.base import NERRecogniser
 
 
-class PersonRecogniser(GLiNERRecogniser):
-    """Detect full names of real persons using GLiNER2.
+class PersonRecogniser(NERRecogniser):
+    """Detect full names of real persons using a NER model.
 
     min_span_chars=3: drops single-char initials and two-letter tokens.
-    denylist: common English pronouns and honorifics that GLiNER2 sometimes
+    denylist: common English pronouns and honorifics that the NER model sometimes
     misidentifies as named persons.
     """
 
@@ -23,10 +23,10 @@ class PersonRecogniser(GLiNERRecogniser):
     default_operator: ClassVar[str] = "replace"
     default_operator_params: ClassVar[dict[str, object]] = {"new_value": "<PERSON>"}
 
-    gliner_labels: ClassVar[dict[str, str]] = {
+    ner_labels: ClassVar[dict[str, str]] = {
         "person": "Full name of a real person or individual",
     }
-    gliner_threshold: ClassVar[float] = 0.5
+    ner_threshold: ClassVar[float] = 0.5
     min_span_chars: ClassVar[int] = 3
     denylist: ClassVar[frozenset[str]] = frozenset({
         # personal pronouns

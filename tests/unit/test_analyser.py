@@ -1,7 +1,7 @@
 """Unit tests for the async detection engine.
 
 _to_entity is a pure function — tested directly with Span + BaseRecogniser.
-AsyncAnalyser.analyse is tested against the regex-only engine (no GLiNER2 in tests).
+AsyncAnalyser.analyse is tested against the regex-only engine (no NER model in tests).
 No mocks.
 """
 

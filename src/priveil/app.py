@@ -31,13 +31,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     settings: Settings = app.state.settings
     executor = ThreadPoolExecutor(max_workers=settings.executor_max_workers)
 
-    # ── GLiNER2 model (optional — NER recognisers skipped if not installed) ──
-    gliner_model = None
+    # ── NER model (optional — NER recognisers skipped if not installed) ────────
+    ner_model = None
     try:
         from gliner2 import GLiNER2
-        logger.info("Loading GLiNER2 model '%s'…", settings.gliner2_model)
-        gliner_model = GLiNER2.from_pretrained(settings.gliner2_model)
-        logger.info("GLiNER2 model loaded — PERSON, LOCATION, DATE_TIME active.")
+        logger.info("Loading NER model '%s'…", settings.ner_model)
+        ner_model = GLiNER2.from_pretrained(settings.ner_model)
+        logger.info("NER model loaded — PERSON, LOCATION, DATE_TIME active.")
     except ImportError:
         logger.info(
             "gliner2 not installed — PERSON, LOCATION, DATE_TIME detection disabled. "
@@ -45,12 +45,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         )
     except Exception:
         logger.exception(
-            "GLiNER2 model '%s' failed to load — continuing with regex-only detection.",
-            settings.gliner2_model,
+            "NER model '%s' failed to load — continuing with regex-only detection.",
+            settings.ner_model,
         )
 
     # ── Detection engine ──────────────────────────────────────────────────────
-    recognisers = build_recognisers(gliner_model=gliner_model)
+    recognisers = build_recognisers(ner_model=ner_model)
     audit_hash_key = settings.audit_hash_key.get_secret_value().encode() if settings.audit_hash_key else None
     if audit_hash_key is None:
         logger.warning(
