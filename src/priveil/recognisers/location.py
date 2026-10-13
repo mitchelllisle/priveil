@@ -9,7 +9,12 @@ from priveil.recognisers.base import GLiNERRecogniser
 
 
 class LocationRecogniser(GLiNERRecogniser):
-    """Detect physical addresses, suburbs, cities, and geographic places using GLiNER2."""
+    """Detect physical addresses, suburbs, cities, and geographic places using GLiNER2.
+
+    threshold=0.7: eliminates low-confidence location guesses on financial codes.
+    min_span_chars=5: drops 3-letter acronyms (TFN, ABN, BSB) that GLiNER2
+    confuses for place abbreviations.
+    """
 
     entity_type: ClassVar[EntityType] = EntityType.LOCATION
     is_pii: ClassVar[bool] = True
@@ -21,4 +26,5 @@ class LocationRecogniser(GLiNERRecogniser):
     gliner_labels: ClassVar[dict[str, str]] = {
         "location": "Physical address, suburb, city, or geographic place",
     }
-    gliner_threshold: ClassVar[float] = 0.5
+    gliner_threshold: ClassVar[float] = 0.7
+    min_span_chars: ClassVar[int] = 5

@@ -25,6 +25,7 @@ class EntityType(str, Enum):
     AU_ACCOUNT_NUMBER = "AU_ACCOUNT_NUMBER"  # Bank account number
     AU_MEDICARE = "AU_MEDICARE"  # Medicare card number — critical PII
     AU_PHONE = "AU_PHONE"        # Australian mobile / landline
+    DATE_OF_BIRTH = "DATE_OF_BIRTH"  # Date of birth — personal PII
 
 
 class Entity(BaseModel, frozen=True):

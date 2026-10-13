@@ -49,6 +49,7 @@ class CreditCardRecogniser(RegexRecogniser):
     }
 
     patterns: ClassVar[list[re.Pattern[str]]] = [
+        # Contiguous digits (existing)
         re.compile(
             r"\b(?:"
             r"4[0-9]{12}(?:[0-9]{3})?"          # Visa (13 or 16 digits)
@@ -56,6 +57,15 @@ class CreditCardRecogniser(RegexRecogniser):
             r"|3[47][0-9]{13}"                   # Amex
             r"|3(?:0[0-5]|[68][0-9])[0-9]{11}"  # Diners Club
             r"|6(?:011|5[0-9]{2})[0-9]{12}"     # Discover
+            r")\b"
+        ),
+        # Space/hyphen separated (e.g. "4111 1111 1111 1111")
+        re.compile(
+            r"\b(?:"
+            r"4[0-9]{3}(?:[\s\-][0-9]{4}){3}"              # Visa 16-digit
+            r"|5[1-5][0-9]{2}(?:[\s\-][0-9]{4}){3}"        # Mastercard
+            r"|3[47][0-9]{2}[\s\-][0-9]{6}[\s\-][0-9]{5}"  # Amex (4-6-5)
+            r"|6(?:011|5[0-9]{2})(?:[\s\-][0-9]{4}){3}"    # Discover
             r")\b"
         ),
     ]
