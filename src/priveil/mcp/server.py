@@ -53,7 +53,7 @@ async def _lifespan(server: FastMCP) -> AsyncIterator[_State]:
         logger.info("NER model loaded for MCP server.")
     except ImportError:
         logger.info(
-            "gliner2 not installed — PERSON, LOCATION, DATE_TIME detection disabled. "
+            "gliner2 not installed — PERSON, LOCATION, DATE_OF_BIRTH detection disabled. "
             "Install with: uv sync --extra gliner"
         )
     except Exception:

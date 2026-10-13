@@ -9,13 +9,13 @@ Sensitivity = Literal["low", "medium", "high", "critical"]
 class EntityType(str, Enum):
     """Entity types recognised by the detection engine."""
 
-    # Standard presidio / spaCy types
+    # Standard types
     PERSON = "PERSON"
     EMAIL_ADDRESS = "EMAIL_ADDRESS"
     PHONE_NUMBER = "PHONE_NUMBER"
     CREDIT_CARD = "CREDIT_CARD"
     LOCATION = "LOCATION"
-    DATE_TIME = "DATE_TIME"
+    DATE_TIME = "DATE_TIME"          # retired — no active recogniser; superseded by DATE_OF_BIRTH
 
     # Australian financial & government identifiers (slice 2)
     AU_TFN = "AU_TFN"            # Tax File Number — critical PII

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     debug: bool = False
     executor_max_workers: int = 4
     # ── NER detector ──────────────────────────────────────────────────────────
-    # Model for PERSON, LOCATION, DATE_TIME detection.
+    # Model for PERSON, LOCATION, DATE_OF_BIRTH detection.
     # Requires: uv sync --extra gliner
     # When gliner2 is not installed, NER recognisers are skipped (regex-only mode).
     ner_model: str = "fastino/gliner2-base-v1"

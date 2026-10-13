@@ -151,7 +151,7 @@ class NERRecogniser(BaseRecogniser, ABC):
     # NER entity always reaches laya rather than being bypassed as "certain".
     max_score: ClassVar[float] = 0.89
 
-    def __init__(self, model: Any) -> None:  # conduit: Any — gliner2 ships no stubs; model is GLiNER2 at runtime
+    def __init__(self, model: Any) -> None:  # conduit: Any — NER model ships no stubs at runtime
         self._model = model
 
     def detect(self, text: str) -> list[Span]:

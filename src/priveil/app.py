@@ -37,10 +37,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         from gliner2 import GLiNER2
         logger.info("Loading NER model '%s'…", settings.ner_model)
         ner_model = GLiNER2.from_pretrained(settings.ner_model)
-        logger.info("NER model loaded — PERSON, LOCATION, DATE_TIME active.")
+        logger.info("NER model loaded — PERSON, LOCATION, DATE_OF_BIRTH active.")
     except ImportError:
         logger.info(
-            "gliner2 not installed — PERSON, LOCATION, DATE_TIME detection disabled. "
+            "gliner2 not installed — PERSON, LOCATION, DATE_OF_BIRTH detection disabled. "
             "Install with: uv sync --extra gliner"
         )
     except Exception:

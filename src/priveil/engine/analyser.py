@@ -3,8 +3,8 @@
 Replaces the previous Presidio + spaCy pipeline.  Detection is now driven
 entirely by ``BaseRecogniser`` subclasses:
 
-- ``RegexRecogniser``   — pattern matching + optional checksum (AU_TFN, email, …)
-- ``NERRecogniser``  — NER model-powered NER (PERSON, LOCATION, DATE_TIME, …)
+- ``RegexRecogniser``  — pattern matching + optional checksum (AU_TFN, email, …)
+- ``NERRecogniser``   — NER model-powered recognisers (PERSON, LOCATION, DATE_OF_BIRTH, …)
 
 All recognisers run concurrently in a shared thread-pool executor (CPU-bound).
 Overlapping spans from different recognisers are deduplicated by keeping the

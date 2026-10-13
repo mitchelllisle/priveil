@@ -15,9 +15,6 @@ class DateOfBirthRecogniser(NERRecogniser):
     scheduling dates ("let's meet on the 2nd") are not detected. Typical
     cases caught: "DOB: 12/06/1990", "born on 14 March 1985", "my birthday
     is 2nd October 1967".
-
-    Threshold raised to 0.5 (vs the old DATE_TIME 0.3) because the label
-    is already precise; low-confidence hits are more likely FP here.
     """
 
     entity_type: ClassVar[EntityType] = EntityType.DATE_OF_BIRTH
