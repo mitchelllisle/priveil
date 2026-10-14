@@ -36,16 +36,16 @@ Incoming text
       │
       ▼ (--extra gliner)
 ┌─────────────────────────────────────────────────────────┐
-│ Layer 2 — GLiNER2 NER (optional)                        │
-│  PERSON · LOCATION · DATE_TIME                          │
-│  Encoder-based NER; finds name/place/date spans that    │
-│  regex cannot. ~400 M params, runs on CPU.              │
+│ Layer 2 — NER model (optional)                          │
+│  PERSON · LOCATION · DATE_OF_BIRTH                      │
+│  Encoder-based NER; finds name/place/DOB spans that     │
+│  regex cannot. Runs on CPU, no API key.                 │
 └─────────────────────────────────────────────────────────┘
       │
-      ▼ (--extra laya, mode="advisor")
+      ▼ (--extra laya, mode="judge")
 ┌─────────────────────────────────────────────────────────┐
-│ Layer 3 — Laya span advisor (optional)                  │
-│  Non-autoregressive System 1 model (~33 ms on GPU).     │
+│ Layer 3 — Span judge (optional)                         │
+│  Type-1 non-autoregressive model (~33 ms on GPU).       │
 │  Verifies each uncertain span: "is this genuinely PII   │
 │  in context?" Removes false positives before returning. │
 │  No API key. No egress. Runs entirely locally.          │
@@ -56,18 +56,18 @@ Detected entities  ──►  /pseudonymise  ──►  Redacted text
                    ──►  /assess        ──►  Risk profile
 ```
 
-**Why two ML models?** GLiNER2 and laya do completely different jobs:
+**Why two ML models?** The NER model and the span judge do completely different jobs:
 
-| | GLiNER2 | Laya |
+| | NER model | Span judge |
 |---|---|---|
-| **Task** | Find entity spans in text (NER) | Verify whether a found span is genuine PII |
+| **Task** | Find entity spans in text | Verify whether a found span is genuine PII |
 | **Input** | Raw text | `{entity_type, span, context}` |
 | **Output** | Character offsets + label | Probability 0–1 |
 | **Speed** | ~50–200 ms (CPU) | ~33 ms on GPU, ~100 ms on CPU |
 | **Install** | `--extra gliner` | `--extra laya` |
 | **API key** | No | No |
 
-Neither replaces the other. GLiNER2 finds candidates; laya filters false positives.
+Neither replaces the other. The NER model finds candidates; the judge filters false positives.
 
 ---
 
@@ -78,7 +78,7 @@ Neither replaces the other. GLiNER2 finds candidates; laya filters false positiv
 uv sync
 uv run python -m priveil
 
-# Full stack: add person/place/date detection + false-positive filtering
+# Full stack: add person/place/DOB detection + false-positive filtering
 uv sync --extra gliner --extra laya
 uv run python -m priveil
 ```
@@ -103,15 +103,15 @@ curl -X POST http://localhost:8000/detect \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Contact Jane Smith at jane@example.com and call 0412 345 678.",
-    "mode": "advisor"
+    "mode": "judge"
   }'
 ```
 
 ```json
 {
   "meta": {
-    "request": { "mode": "advisor" },
-    "response": { "mode": "advisor", "input_hash": "hmac-sha256:..." }
+    "request": { "mode": "judge" },
+    "response": { "mode": "judge", "input_hash": "hmac-sha256:..." }
   },
   "data": {
     "entities": [
@@ -119,19 +119,19 @@ curl -X POST http://localhost:8000/detect \
       { "text": "jane@example.com", "entity_type": "EMAIL_ADDRESS", "is_pii": true,  "sensitivity": "medium", "score": 1.0  },
       { "text": "0412 345 678",     "entity_type": "AU_PHONE",      "is_pii": true,  "sensitivity": "medium", "score": 0.95 }
     ],
-    "advisor_applied": true
+    "judge_applied": true
   }
 }
 ```
 
-> **Note:** `PERSON` only appears when `--extra gliner` is installed. Without it, only regex-detected types (email, phone, AU identifiers) are returned.
+> **Note:** `PERSON`, `LOCATION`, and `DATE_OF_BIRTH` only appear when `--extra gliner` is installed. Without it, only regex-detected types (email, phone, AU identifiers) are returned.
 
 **`mode` field:**
 
 | Value | Behaviour |
 |-------|-----------|
-| `"advisor"` (default) | Laya verifies each uncertain span to remove false positives. Falls back to `"fast"` if laya is not installed. |
-| `"fast"` | Raw detector output — no ML verification pass. |
+| `"judge"` (default) | The span judge verifies each uncertain span to remove false positives. Falls back to `"fast"` if laya is not installed. |
+| `"fast"` | Raw detector output — no judge verification pass. |
 
 ### `POST /pseudonymise`
 
@@ -140,7 +140,7 @@ curl -X POST http://localhost:8000/pseudonymise \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Jane Smith TFN 123 456 782, BSB 062-000, jane@bank.com.au",
-    "mode": "advisor"
+    "mode": "judge"
   }'
 ```
 
@@ -154,7 +154,7 @@ curl -X POST http://localhost:8000/pseudonymise \
       "062-000":          "XXX-XXX",
       "jane@bank.com.au": "<EMAIL>"
     },
-    "advisor_applied": true
+    "judge_applied": true
   }
 }
 ```
@@ -168,10 +168,10 @@ curl -X POST http://localhost:8000/pseudonymise \
 | `AU_PHONE` / `PHONE_NUMBER` | `<PHONE>` |
 | `AU_TFN` | `***-***-***` |
 | `AU_BSB` | `XXX-XXX` |
-| `AU_ABN` | `*** *** ***` |
+| `AU_ABN` | `** *** *** ***` |
 | `CREDIT_CARD` | `**** **** **** 1234` (last 4 kept) |
 | `LOCATION` | `<LOCATION>` |
-| `DATE_TIME` | `<DATE>` |
+| `DATE_OF_BIRTH` | `<DOB>` |
 
 Override per request:
 
@@ -186,7 +186,7 @@ Available operators: `replace`, `mask`, `redact`, `hash`.
 
 ### `POST /assess`
 
-Laya-powered sensitivity assessment. Requires `uv sync --extra laya`.
+Judge-powered sensitivity assessment. Requires `uv sync --extra laya`.
 
 ```bash
 curl -X POST http://localhost:8000/assess \
@@ -201,9 +201,9 @@ Returns: `overall_sensitivity` (low/medium/high/critical), `categories`, `regula
 
 ---
 
-## GLiNER2 — person, location and date detection
+## NER model — person, location, and date of birth detection
 
-[GLiNER2](https://github.com/fastino/gliner2) is a compact encoder-based NER model that finds `PERSON`, `LOCATION`, and `DATE_TIME` spans in text. It uses a sliding-window approach over raw text and returns character offsets.
+The NER model (default: [fastino/gliner2-base-v1](https://huggingface.co/fastino/gliner2-base-v1)) is a compact encoder-based model that finds `PERSON`, `LOCATION`, and `DATE_OF_BIRTH` spans in text. It uses label-guided extraction and returns character offsets.
 
 **Install:**
 
@@ -211,25 +211,25 @@ Returns: `overall_sensitivity` (low/medium/high/critical), `categories`, `regula
 uv sync --extra gliner
 ```
 
-Without this extra, the service runs in **regex-only mode** — AU financial identifiers, email, phone, and credit card are still detected; person names, locations, and dates are not.
+Without this extra, the service runs in **regex-only mode** — AU financial identifiers, email, phone, and credit card are still detected; person names, locations, and dates of birth are not.
 
 **Configuration:**
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PRIVEIL_GLINER2_MODEL` | `fastino/gliner2-base-v1` | HuggingFace model ID. Downloaded on first run and cached. |
+| `PRIVEIL_NER_MODEL` | `fastino/gliner2-base-v1` | HuggingFace model ID. Downloaded on first run and cached. |
 
 The model loads at startup from the HuggingFace hub (or local cache). If the load fails, the service continues in regex-only mode rather than refusing to start.
 
 ---
 
-## Laya — span verification and assessment
+## Span judge — verification and assessment
 
-[Laya](https://pypi.org/project/laya/) is a non-autoregressive System 1 decision engine. Rather than generating text, it answers typed questions (`noul` = yes/no probability, `choice`, `score`) in a single encoder forward pass.
+The span judge ([laya](https://pypi.org/project/laya/)) is a Type-1 non-autoregressive decision engine. Rather than generating text, it answers typed questions (`noul` = yes/no probability, `choice`, `score`) in a single encoder forward pass.
 
-Priveil uses laya for two things:
+Priveil uses the judge for two things:
 
-**1. Span verification (`mode="advisor"`)**: after detection, each uncertain span is sent to laya with a `noul` question:
+**1. Span verification (`mode="judge"`)**: after detection, each uncertain span is verified with a `noul` question:
 
 ```
 entity_type: PERSON
@@ -245,17 +245,17 @@ context: "Routing codes 062-000 and 013-005 direct traffic between nodes."
 → is_genuine_pii probability: 0.21  ✗ drop (false positive)
 ```
 
-High-confidence spans (score ≥ `PRIVEIL_ADVISOR_SCORE_THRESHOLD`) and trust-tier recognisers (AU_TFN, AU_MEDICARE, etc.) bypass laya entirely.
+High-confidence spans (score ≥ `PRIVEIL_JUDGE_SCORE_THRESHOLD`) from trust-tier regex recognisers (AU_TFN, AU_MEDICARE, etc.) bypass the judge entirely. NER model outputs are always verified — neural model confidence scores are not reliable enough to skip the judge.
 
-**2. Risk assessment (`POST /assess`)**: laya answers typed questions about the full document:
+**2. Risk assessment (`POST /assess`)**: the judge answers typed questions about the full document:
 - `choice`: overall sensitivity tier (low / medium / high / critical)
 - `noul`: is this financial PII? identity PII? medical? employment?
 
-Rule tables derive the advisory fields (`regulatory_flags`, `recommended_handling`) from laya's typed answers plus the detected entity types.
+Rule tables derive the advisory fields (`regulatory_flags`, `recommended_handling`) from the judge's typed answers plus the detected entity types.
 
-**Why laya instead of an LLM?**
+**Why the judge instead of an LLM?**
 
-| | LLM (removed) | Laya |
+| | LLM | Judge (laya) |
 |---|---|---|
 | Latency | 150–500 ms (network) | ~33 ms on GPU, ~100 ms on CPU |
 | API key | Required | Not required |
@@ -273,27 +273,27 @@ uv sync --extra laya
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PRIVEIL_ADVISOR_BACKEND` | `auto` | `auto` = use laya if installed; `laya` = require laya |
+| `PRIVEIL_JUDGE_BACKEND` | `auto` | `auto` = use laya if installed; `laya` = require laya |
 | `PRIVEIL_ASSESS_BACKEND` | `auto` | `auto` = use laya if installed, else 503 |
-| `PRIVEIL_LAYA_PII_THRESHOLD` | `0.5` | Probability threshold for keeping a span |
-| `PRIVEIL_LAYA_PRELOAD` | `false` | Load all laya checkpoints at startup (recommended in production) |
-| `PRIVEIL_ADVISOR_SCORE_THRESHOLD` | `0.9` | Spans scoring ≥ this bypass laya verification |
-| `PRIVEIL_ADVISOR_CONTEXT_CHARS` | `60` | Characters of context window sent to laya per span |
+| `PRIVEIL_JUDGE_PII_THRESHOLD` | `0.5` | Probability threshold for keeping a span |
+| `PRIVEIL_JUDGE_PRELOAD` | `false` | Load all checkpoints at startup (recommended in production) |
+| `PRIVEIL_JUDGE_SCORE_THRESHOLD` | `0.9` | Trust-tier regex spans at or above this bypass the judge |
+| `PRIVEIL_JUDGE_CONTEXT_CHARS` | `60` | Characters of context window sent to the judge per span |
 
 **Performance (concurrent spans):**
 
-| Spans | laya (GPU) | laya (CPU) |
-|-------|-----------|-----------|
+| Spans | Judge (GPU) | Judge (CPU) |
+|-------|------------|------------|
 | 1 | ~33 ms | ~100 ms |
 | 3 | ~33 ms | ~100 ms (concurrent) |
 | 5 | ~66 ms | ~200 ms |
 
-Multiple spans verify concurrently in the thread pool. All-trust inputs (AU_TFN, AU_MEDICARE etc.) bypass laya entirely — zero overhead.
+Multiple spans verify concurrently in the thread pool. Trust-tier inputs (AU_TFN, AU_MEDICARE etc.) bypass the judge entirely — zero overhead.
 
 **Production setup:**
 
 ```bash
-PRIVEIL_LAYA_PRELOAD=true  # warm checkpoints at startup, not on first request
+PRIVEIL_JUDGE_PRELOAD=true  # warm checkpoints at startup, not on first request
 ```
 
 ---
@@ -313,7 +313,7 @@ Purpose-built recognisers with checksum validation where the issuing authority p
 
 Generic types (always active): `EMAIL_ADDRESS`, `PHONE_NUMBER`, `CREDIT_CARD`.
 
-NER types (requires `--extra gliner`): `PERSON`, `LOCATION`, `DATE_TIME`.
+NER types (requires `--extra gliner`): `PERSON`, `LOCATION`, `DATE_OF_BIRTH`.
 
 > **TFN scope:** 9-digit TFNs only. Legacy 8-digit TFNs are excluded by design.
 
@@ -325,15 +325,15 @@ All variables prefixed `PRIVEIL_`. Copy `.env.example` to `.env`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PRIVEIL_GLINER2_MODEL` | `fastino/gliner2-base-v1` | GLiNER2 NER model. Requires `--extra gliner`. |
-| `PRIVEIL_ADVISOR_BACKEND` | `auto` | Span advisor backend: `auto` (laya if installed) or `laya` |
+| `PRIVEIL_NER_MODEL` | `fastino/gliner2-base-v1` | NER model HuggingFace ID. Requires `--extra gliner`. |
+| `PRIVEIL_JUDGE_BACKEND` | `auto` | Span judge backend: `auto` (laya if installed) or `laya` |
 | `PRIVEIL_ASSESS_BACKEND` | `auto` | Assess backend: `auto` (laya if installed, else 503) or `laya` |
-| `PRIVEIL_ADVISOR_SCORE_THRESHOLD` | `0.9` | Spans at or above this score bypass laya verification |
-| `PRIVEIL_ADVISOR_CONTEXT_CHARS` | `60` | Context window (chars) around each span sent to laya |
-| `PRIVEIL_LAYA_PII_THRESHOLD` | `0.5` | Laya `noul` probability to keep a span as genuine PII |
-| `PRIVEIL_LAYA_PRELOAD` | `false` | Preload laya checkpoints at startup |
+| `PRIVEIL_JUDGE_SCORE_THRESHOLD` | `0.9` | Trust-tier regex spans at or above this bypass the judge |
+| `PRIVEIL_JUDGE_CONTEXT_CHARS` | `60` | Context window (chars) around each span sent to the judge |
+| `PRIVEIL_JUDGE_PII_THRESHOLD` | `0.5` | Judge `noul` probability to keep a span as genuine PII |
+| `PRIVEIL_JUDGE_PRELOAD` | `false` | Preload judge checkpoints at startup |
 | `PRIVEIL_AUDIT_HASH_KEY` | _(unset)_ | HMAC key for `input_hash`. Set for stable hashes across restarts. |
-| `PRIVEIL_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool workers for CPU-bound recogniser + laya work |
+| `PRIVEIL_EXECUTOR_MAX_WORKERS` | `4` | Thread-pool workers for CPU-bound recogniser and judge work |
 | `PRIVEIL_DEBUG` | `false` | FastAPI debug mode |
 
 ---
@@ -354,14 +354,14 @@ pip install "priveil[mcp]"
     "priveil": {
       "command": "priveil-mcp",
       "env": {
-        "PRIVEIL_LAYA_PRELOAD": "true"
+        "PRIVEIL_JUDGE_PRELOAD": "true"
       }
     }
   }
 }
 ```
 
-The MCP server loads the same detection stack as the HTTP API — GLiNER2 if installed, laya if installed. No API key needed when using laya.
+The MCP server loads the same detection stack as the HTTP API — NER model if installed, span judge if installed. No API key needed.
 
 ---
 
@@ -394,42 +394,42 @@ CI runs across Python 3.11, 3.12, and 3.13.
 
 ```
 src/priveil/
-├── advisor/
-│   ├── laya_advisor.py    # LayaSpanAdvisor — noul questions per span
-│   │                      # Also exports: AdvisorResult, AdvisorProtocol
-│   └── laya_assessor.py   # LayaAssessor — choice/noul for /assess
-│                          # Also exports: entity_breakdown()
+├── judge/
+│   ├── judge.py       # SpanJudge — noul questions per span
+│   │                  # Also exports: JudgeResult, JudgeProtocol
+│   └── assessor.py    # JudgeAssessor — choice/noul for /assess
+│                      # Also exports: entity_breakdown()
 ├── api/
-│   ├── deps.py            # FastAPI dependency injection
-│   └── routes/            # detect, pseudonymise, assess, health
-├── domain/                # Pydantic models (entities, detection, assessment, …)
-├── engine/                # AsyncAnalyser, AsyncPseudonymiser
-├── mcp/                   # MCP server (pip install "priveil[mcp]")
-│   ├── server.py          # _State dataclass, lifespan, FastMCP instance
-│   └── tools.py           # detect / anonymise / assess tools
+│   ├── deps.py        # FastAPI dependency injection
+│   └── routes/        # detect, pseudonymise, assess, health
+├── domain/            # Pydantic models (entities, detection, assessment, …)
+├── engine/            # AsyncAnalyser, AsyncPseudonymiser
+├── mcp/               # MCP server (pip install "priveil[mcp]")
+│   ├── server.py      # _State dataclass, lifespan, FastMCP instance
+│   └── tools.py       # detect / anonymise / assess tools
 ├── recognisers/
-│   ├── au_tfn.py          # AU_TFN — mod-11 checksum
-│   ├── au_medicare.py     # AU_MEDICARE — Services Australia checksum
-│   ├── au_abn.py          # AU_ABN — mod-89 checksum
-│   ├── au_acn.py          # AU_ACN — complement-of-10 checksum
-│   ├── au_bsb.py          # AU_BSB — format validation
-│   ├── au_phone.py        # AU_PHONE — pattern matching
-│   ├── email.py           # EMAIL_ADDRESS
-│   ├── phone.py           # PHONE_NUMBER
-│   ├── credit_card.py     # CREDIT_CARD — Luhn checksum
-│   ├── person.py          # PERSON — GLiNER2 (optional)
-│   ├── location.py        # LOCATION — GLiNER2 (optional)
-│   ├── date_time.py       # DATE_TIME — GLiNER2 (optional)
-│   ├── base.py            # Span, BaseRecogniser, RegexRecogniser, GLiNERRecogniser
-│   └── registry.py        # build_recognisers(gliner_model=None)
-├── settings.py            # All config vars, prefixed PRIVEIL_
-├── app.py                 # FastAPI factory + lifespan
-└── __main__.py            # python -m priveil → HTTP API
+│   ├── au_tfn.py      # AU_TFN — mod-11 checksum
+│   ├── au_medicare.py # AU_MEDICARE — Services Australia checksum
+│   ├── au_abn.py      # AU_ABN — mod-89 checksum
+│   ├── au_acn.py      # AU_ACN — complement-of-10 checksum
+│   ├── au_bsb.py      # AU_BSB — format validation + judge
+│   ├── au_phone.py    # AU_PHONE — pattern matching + judge
+│   ├── email.py       # EMAIL_ADDRESS
+│   ├── phone.py       # PHONE_NUMBER — judge
+│   ├── credit_card.py # CREDIT_CARD — Luhn checksum
+│   ├── person.py      # PERSON — NER model (optional)
+│   ├── location.py    # LOCATION — NER model (optional)
+│   ├── date_of_birth.py # DATE_OF_BIRTH — NER model (optional)
+│   ├── base.py        # Span, BaseRecogniser, RegexRecogniser, NERRecogniser
+│   └── registry.py    # build_recognisers(ner_model=None)
+├── settings.py        # All config vars, prefixed PRIVEIL_
+├── app.py             # FastAPI factory + lifespan
+└── __main__.py        # python -m priveil → HTTP API
 
 tests/
-├── unit/                  # Pure function tests — no network
-├── integration/           # Full request→response via httpx AsyncClient
-└── mcp/                   # MCP tool tests (skipped when mcp extra not installed)
+├── unit/              # Pure function tests — no network
+├── integration/       # Full request→response via httpx AsyncClient
+└── mcp/               # MCP tool tests (skipped when mcp extra not installed)
 ```
 
 ---
